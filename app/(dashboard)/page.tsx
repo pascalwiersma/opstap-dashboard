@@ -21,13 +21,13 @@ async function getStats() {
   ] = await Promise.all([
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
     supabaseAdmin
-      .from('checkins')
+      .from('check_ins')
       .select('user_id', { count: 'exact', head: true })
-      .gte('created_at', weekAgo),
+      .gte('checked_in_at', weekAgo),
     supabaseAdmin
-      .from('checkins')
+      .from('check_ins')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', todayStart),
+      .gte('checked_in_at', todayStart),
     supabaseAdmin
       .from('matches')
       .select('*', { count: 'exact', head: true })
@@ -54,10 +54,10 @@ async function getCheckinChartData() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const { data } = await supabaseAdmin
-    .from('checkins')
-    .select('created_at')
-    .gte('created_at', thirtyDaysAgo)
-    .order('created_at', { ascending: true })
+    .from('check_ins')
+    .select('checked_in_at')
+    .gte('checked_in_at', thirtyDaysAgo)
+    .order('checked_in_at', { ascending: true })
 
   if (!data) return []
 
@@ -70,7 +70,7 @@ async function getCheckinChartData() {
   }
 
   for (const row of data) {
-    const d = new Date(row.created_at)
+    const d = new Date(row.checked_in_at)
     const key = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
     if (key in counts) counts[key]++
   }
