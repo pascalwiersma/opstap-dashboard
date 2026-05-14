@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -51,7 +51,6 @@ export async function middleware(request: NextRequest) {
     .single()
 
   if (!profile?.is_admin) {
-    // Niet-admins krijgen toegang tot de loginpagina zodat ze een foutmelding zien
     if (isLoginPage) return supabaseResponse
     return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
