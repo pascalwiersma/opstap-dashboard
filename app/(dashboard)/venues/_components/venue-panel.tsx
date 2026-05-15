@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Trash2, Save, MapPin } from 'lucide-react'
-import type { Venue, VenueInput, VenueType } from '@/app/actions/venues'
+import { useEffect, useRef, useState } from 'react'
+import { X, Trash2, Save, MapPin, ImagePlus, Loader2 } from 'lucide-react'
+import type { Venue, VenueInput, VenueType, VenuePhoto } from '@/app/actions/venues'
+import { getVenuePhotos, uploadVenuePhoto, deleteVenuePhoto } from '@/app/actions/venues'
 
 type Mode = 'create' | 'edit'
 
@@ -11,6 +12,7 @@ type Props = {
   venue?: Venue
   lat?: number
   lng?: number
+  dragPos?: { lat: number; lng: number }
   onSave: (input: VenueInput) => Promise<void>
   onDelete?: () => Promise<void>
   onClose: () => void
@@ -28,7 +30,7 @@ const TYPE_OPTIONS: { value: VenueType; label: string }[] = [
   { value: 'cafe', label: 'Café' },
 ]
 
-export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }: Props) {
+export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, onClose }: Props) {
   const [name, setName] = useState(venue?.name ?? '')
   const [type, setType] = useState<VenueType | null>(venue?.type ?? null)
   const [description, setDescription] = useState(venue?.description ?? '')
@@ -36,12 +38,22 @@ export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }:
   const [hours, setHours] = useState<Record<string, string>>(
     venue?.opening_hours ?? {}
   )
+  const [photos, setPhotos] = useState<VenuePhoto[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  const coordLat = venue?.lat ?? lat ?? 0
-  const coordLng = venue?.lng ?? lng ?? 0
+  useEffect(() => {
+    if (mode === 'edit' && venue?.id) {
+      getVenuePhotos(venue.id).then(setPhotos).catch(() => {})
+    }
+  }, [mode, venue?.id])
+
+  const coordLat = dragPos?.lat ?? venue?.lat ?? lat ?? 0
+  const coordLng = dragPos?.lng ?? venue?.lng ?? lng ?? 0
 
   async function handleSave() {
     if (!name.trim()) {
@@ -53,7 +65,6 @@ export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }:
     try {
       await onSave({
         name: name.trim(),
-        address: venue?.address ?? '',
         lat: coordLat,
         lng: coordLng,
         type,
@@ -83,6 +94,35 @@ export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }:
     }
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !venue?.id) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const newPhoto = await uploadVenuePhoto(venue.id, fd)
+      setPhotos(p => [...p, newPhoto])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload mislukt.')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  async function handleDeletePhoto(photo: VenuePhoto) {
+    setDeletingPhotoId(photo.id)
+    try {
+      await deleteVenuePhoto(photo.id, photo.photo_url)
+      setPhotos(p => p.filter(x => x.id !== photo.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verwijderen mislukt.')
+    } finally {
+      setDeletingPhotoId(null)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-900 w-96 shrink-0 border-l border-gray-800 overflow-hidden">
       {/* Header */}
@@ -98,10 +138,12 @@ export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }:
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Coördinaten */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-800 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 text-xs bg-gray-800 rounded-lg px-3 py-2">
           <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-          <span>{coordLat.toFixed(6)}, {coordLng.toFixed(6)}</span>
+          <span className="text-gray-400 tabular-nums">{coordLat.toFixed(6)}, {coordLng.toFixed(6)}</span>
+          {dragPos && <span className="ml-auto text-violet-400 font-medium">Versleept</span>}
         </div>
+        <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
 
         {/* Naam */}
         <div>
@@ -163,6 +205,48 @@ export function VenuePanel({ mode, venue, lat, lng, onSave, onDelete, onClose }:
             ))}
           </div>
         </div>
+
+        {/* Foto's — alleen in edit modus */}
+        {mode === 'edit' && (
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-2">Foto&apos;s</label>
+            {photos.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {photos.map(photo => (
+                  <div key={photo.id} className="relative rounded-lg overflow-hidden group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.photo_url} alt="Venue foto" className="w-full h-24 object-cover" />
+                    <button
+                      onClick={() => handleDeletePhoto(photo)}
+                      disabled={deletingPhotoId === photo.id}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                    >
+                      {deletingPhotoId === photo.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <X className="w-3 h-3" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 w-full border border-dashed border-gray-700 hover:border-gray-500 rounded-xl px-4 py-3 text-sm text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
+            >
+              {uploading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploaden...</>
+                : <><ImagePlus className="w-4 h-4" /> Foto toevoegen</>}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </div>
+        )}
 
         {/* Actief */}
         <div className="flex items-center justify-between">

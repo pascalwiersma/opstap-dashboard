@@ -1,7 +1,7 @@
 import { signOut } from '@/app/actions/auth'
 import {
   LayoutDashboard,
-  MapPin,
+  Map,
   Users,
   Zap,
   Navigation,
@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/venues', label: 'Venues', icon: MapPin },
+  { href: '/kaart', label: 'Kaart', icon: Map },
   { href: '/gebruikers', label: 'Gebruikers', icon: Users },
   { href: '/matches', label: 'Matches', icon: Zap },
   { href: '/incheckins', label: 'Incheckins', icon: Navigation },
