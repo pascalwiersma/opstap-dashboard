@@ -2,7 +2,7 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -18,6 +18,21 @@ function LoginForm() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  // Verwerk invite-tokens die Supabase als hash-fragment meestuurt
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) return
+    const params = new URLSearchParams(hash.slice(1))
+    const type = params.get('type')
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    if (type === 'invite' && accessToken && refreshToken) {
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(() => { window.location.href = '/wachtwoord-instellen' })
+    }
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -37,23 +52,24 @@ function LoginForm() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('dashboard_role')
       .eq('id', data.user.id)
       .single()
 
-    if (!profile?.is_admin) {
+    if (!profile?.dashboard_role) {
       await supabase.auth.signOut()
-      setError('Geen toegang. Alleen admins kunnen inloggen op het dashboard.')
+      setError('Geen toegang. Neem contact op met de beheerder.')
       setLoading(false)
       return
     }
 
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
 
   const displayError =
-    error || (urlError === 'unauthorized' ? 'Geen toegang tot het dashboard.' : '')
+    error ||
+    (urlError === 'unauthorized' ? 'Geen toegang tot het dashboard.' : '') ||
+    (urlError === 'invite_expired' ? 'Uitnodigingslink is verlopen. Vraag een nieuwe uitnodiging aan.' : '')
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">

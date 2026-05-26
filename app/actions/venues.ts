@@ -28,6 +28,7 @@ export type Venue = {
 }
 
 export type VenueInput = {
+  province_id?: string | null
   name: string
   lat: number
   lng: number
@@ -37,13 +38,14 @@ export type VenueInput = {
   opening_hours: Record<string, string> | null
 }
 
-export async function getVenues(): Promise<Venue[]> {
-  const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase
+export async function getVenues(province_id?: string): Promise<Venue[]> {
+  let query = adminClient()
     .from('venues')
     .select('id, name, lat, lng, type, description, photo_url, active, opening_hours, created_at')
     .order('name')
+  if (province_id) query = query.eq('province_id', province_id)
 
+  const { data, error } = await query
   if (error) throw new Error(error.message)
   return data as Venue[]
 }

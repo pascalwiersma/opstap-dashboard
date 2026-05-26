@@ -1,27 +1,44 @@
 import { signOut } from '@/app/actions/auth'
+import { getCurrentUser } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
 import {
   LayoutDashboard,
   Map,
+  Globe,
   Users,
-  Zap,
-  Navigation,
-  Flag,
-  Settings,
   LogOut,
 } from 'lucide-react'
 import Link from 'next/link'
+import { HashFoutBanner } from './_components/hash-fout-banner'
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/kaart', label: 'Kaart', icon: Map },
-  { href: '/gebruikers', label: 'Gebruikers', icon: Users },
-  { href: '/matches', label: 'Matches', icon: Zap },
-  { href: '/incheckins', label: 'Incheckins', icon: Navigation },
-  { href: '/rapportages', label: 'Rapportages', icon: Flag },
-  { href: '/instellingen', label: 'Instellingen', icon: Settings },
-]
+const ROL_LABEL: Record<string, string> = {
+  admin: 'Admin',
+  national: 'Vertegenwoordiger',
+  provincial: 'Vertegenwoordiger',
+}
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+const ROL_KLEUR: Record<string, string> = {
+  admin: 'bg-violet-600',
+  national: 'bg-emerald-600',
+  provincial: 'bg-emerald-600',
+}
+
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser()
+  if (!user) redirect('/login?error=unauthorized')
+
+  const heeftProvincie = user.role !== 'provincial' || !!user.province_id
+
+  const navItems = [
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
+    { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
+    { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
+    { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
+  ].filter(item =>
+    item.roles.includes(user.role) &&
+    (!item.requiresProvincie || heeftProvincie)
+  )
+
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
       {/* Sidebar */}
@@ -48,8 +65,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        {/* Uitloggen */}
-        <div className="px-3 py-4 border-t border-gray-800">
+        {/* Gebruiker + uitloggen */}
+        <div className="px-3 py-4 border-t border-gray-800 space-y-3">
+          <div className="px-3 py-2.5 rounded-lg bg-gray-800/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${ROL_KLEUR[user.role]} text-white`}>
+                {ROL_LABEL[user.role]}
+              </span>
+              {user.province_name && (
+                <span className="text-xs text-gray-400 truncate">{user.province_name}</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+
           <form action={signOut}>
             <button
               type="submit"
@@ -64,6 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Hoofdcontent */}
       <main className="flex-1 overflow-y-auto">
+        <HashFoutBanner />
         {children}
       </main>
     </div>

@@ -1,145 +1,109 @@
-import { supabaseAdmin } from '@/lib/supabase'
-
 export const dynamic = 'force-dynamic'
+
+import { getCurrentUser } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
+import { getAdminStats, getAdminChartData, getProvincieStats, getProvincieChartData } from '@/app/actions/dashboard'
 import { StatsCard } from './_components/stats-card'
-import { CheckinsChart } from './_components/checkins-chart'
-import { Users, Activity, MapPinCheck, Zap, CheckCheck, MapPin } from 'lucide-react'
+import { DagGrafiek } from './_components/dag-grafiek'
+import {
+  Users, UserPlus, LogIn, CalendarCheck, Zap, CheckCheck,
+  MapPin, CalendarDays, Hexagon, ClipboardList,
+} from 'lucide-react'
 
-async function getStats() {
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).toISOString()
+// ── Admin ─────────────────────────────────────────────────────────────────────
 
-  const [
-    { count: totalUsers },
-    { count: activeUsers },
-    { count: checkedInTonight },
-    { count: matchesThisWeek },
-    { count: confirmedMatchesThisWeek },
-    { count: totalVenues },
-  ] = await Promise.all([
-    supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
-    supabaseAdmin
-      .from('check_ins')
-      .select('user_id', { count: 'exact', head: true })
-      .gte('checked_in_at', weekAgo),
-    supabaseAdmin
-      .from('check_ins')
-      .select('*', { count: 'exact', head: true })
-      .gte('checked_in_at', todayStart),
-    supabaseAdmin
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', weekStart),
-    supabaseAdmin
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'confirmed')
-      .gte('created_at', weekStart),
-    supabaseAdmin.from('venues').select('*', { count: 'exact', head: true }),
+async function AdminDashboard() {
+  const [stats, charts] = await Promise.all([getAdminStats(), getAdminChartData()])
+
+  return (
+    <>
+      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+        <StatsCard title="App-gebruikers" value={stats.totalUsers} icon={Users} color="bg-violet-600" />
+        <StatsCard title="Nieuwe gebruikers (7d)" value={stats.newUsersWeek} icon={UserPlus} color="bg-blue-600" />
+        <StatsCard title="Ingecheckt vandaag" value={stats.checkinsVandaag} icon={LogIn} color="bg-emerald-600" />
+        <StatsCard title="Inchecks (7d)" value={stats.checkinsWeek} icon={CalendarCheck} color="bg-teal-600" />
+        <StatsCard title="Matches (7d)" value={stats.matchesWeek} icon={Zap} color="bg-yellow-600" />
+        <StatsCard title="Bevestigde matches (7d)" value={stats.confirmedMatches} icon={CheckCheck} color="bg-orange-600" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-gray-700" />
+        <StatsCard title="Evenementen" value={stats.events} icon={CalendarDays} color="bg-gray-700" />
+        <StatsCard title="Meeting areas" value={stats.areas} icon={Hexagon} color="bg-gray-700" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <p className="text-sm font-semibold text-white mb-0.5">Nieuwe gebruikers</p>
+          <p className="text-xs text-gray-500 mb-5">Afgelopen 30 dagen</p>
+          <DagGrafiek data={charts.gebruikers} label="Nieuwe gebruikers" kleur="#7c3aed" />
+        </div>
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <p className="text-sm font-semibold text-white mb-0.5">Inchecks</p>
+          <p className="text-xs text-gray-500 mb-5">Afgelopen 30 dagen</p>
+          <DagGrafiek data={charts.checkins} label="Inchecks" kleur="#0ea5e9" />
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Vertegenwoordiger ─────────────────────────────────────────────────────────
+
+async function VertegenwoordigerDashboard({ province_id, province_name }: { province_id: string; province_name: string | null }) {
+  const [stats, chartData] = await Promise.all([
+    getProvincieStats(province_id),
+    getProvincieChartData(province_id),
   ])
 
-  return {
-    totalUsers: totalUsers ?? 0,
-    activeUsers: activeUsers ?? 0,
-    checkedInTonight: checkedInTonight ?? 0,
-    matchesThisWeek: matchesThisWeek ?? 0,
-    confirmedMatchesThisWeek: confirmedMatchesThisWeek ?? 0,
-    totalVenues: totalVenues ?? 0,
-  }
+  return (
+    <>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-violet-600" />
+        <StatsCard title="Evenementen" value={stats.events} icon={CalendarDays} color="bg-blue-600" />
+        <StatsCard title="Meeting areas" value={stats.areas} icon={Hexagon} color="bg-emerald-600" />
+        <StatsCard title="Registraties (7d)" value={stats.registratiesWeek} icon={ClipboardList} color="bg-orange-600" />
+      </div>
+
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <p className="text-sm font-semibold text-white mb-0.5">Event registraties</p>
+        <p className="text-xs text-gray-500 mb-5">Afgelopen 30 dagen · {province_name ?? 'jouw provincie'}</p>
+        <DagGrafiek data={chartData} label="Registraties" kleur="#10b981" />
+      </div>
+    </>
+  )
 }
 
-async function getCheckinChartData() {
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-
-  const { data } = await supabaseAdmin
-    .from('check_ins')
-    .select('checked_in_at')
-    .gte('checked_in_at', thirtyDaysAgo)
-    .order('checked_in_at', { ascending: true })
-
-  if (!data) return []
-
-  // Groepeer per dag
-  const counts: Record<string, number> = {}
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-    const key = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-    counts[key] = 0
-  }
-
-  for (const row of data) {
-    const d = new Date(row.checked_in_at)
-    const key = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-    if (key in counts) counts[key]++
-  }
-
-  return Object.entries(counts).map(([date, count]) => ({ date, count }))
-}
+// ── Pagina ────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
-  const [stats, chartData] = await Promise.all([getStats(), getCheckinChartData()])
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
 
-  const statCards = [
-    {
-      title: 'Totaal gebruikers',
-      value: stats.totalUsers,
-      icon: Users,
-      color: 'bg-violet-600',
-    },
-    {
-      title: 'Actief afgelopen 7 dagen',
-      value: stats.activeUsers,
-      icon: Activity,
-      color: 'bg-blue-600',
-    },
-    {
-      title: 'Ingecheckt vanavond',
-      value: stats.checkedInTonight,
-      icon: MapPinCheck,
-      color: 'bg-emerald-600',
-    },
-    {
-      title: 'Matches deze week',
-      value: stats.matchesThisWeek,
-      icon: Zap,
-      color: 'bg-yellow-600',
-    },
-    {
-      title: 'Bevestigde matches',
-      value: stats.confirmedMatchesThisWeek,
-      icon: CheckCheck,
-      color: 'bg-pink-600',
-    },
-    {
-      title: 'Totaal venues',
-      value: stats.totalVenues,
-      icon: MapPin,
-      color: 'bg-orange-600',
-    },
-  ]
+  const isAdmin = user.role === 'admin'
+  const isNational = user.role === 'national'
+  const isProvincial = user.role === 'provincial'
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1 text-sm">Overzicht van OpStap activiteit</p>
+        <p className="text-gray-400 mt-1 text-sm">
+          {isAdmin && 'Globaal overzicht van OpStap'}
+          {isNational && 'Landelijk overzicht van OpStap'}
+          {isProvincial && `Overzicht voor ${user.province_name ?? 'jouw provincie'}`}
+        </p>
       </div>
 
-      {/* Statistieken */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
-        {statCards.map((card) => (
-          <StatsCard key={card.title} {...card} />
-        ))}
-      </div>
-
-      {/* Grafiek */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-        <h2 className="text-base font-semibold text-white mb-1">Incheckins per dag</h2>
-        <p className="text-gray-400 text-sm mb-6">Afgelopen 30 dagen</p>
-        <CheckinsChart data={chartData} />
-      </div>
+      {(isAdmin || isNational) && <AdminDashboard />}
+      {isProvincial && user.province_id && (
+        <VertegenwoordigerDashboard province_id={user.province_id} province_name={user.province_name ?? null} />
+      )}
+      {isProvincial && !user.province_id && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl px-6 py-10 text-center text-gray-500 text-sm">
+          Nog geen provincie toegewezen. Neem contact op met een admin.
+        </div>
+      )}
     </div>
   )
 }

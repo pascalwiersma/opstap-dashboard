@@ -26,18 +26,23 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const isLoginPage = request.nextUrl.pathname === '/login'
+  const { pathname } = request.nextUrl
+  const isPublicRoute = pathname === '/login' || pathname.startsWith('/auth/') || pathname === '/wachtwoord-instellen'
 
+  // Niet ingelogd → naar login (publieke routes mogen door)
   if (!user) {
-    if (isLoginPage) return supabaseResponse
+    if (isPublicRoute) return supabaseResponse
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Admin check via service_role — bypast RLS voor betrouwbare controle
+  // Ingelogd op wachtwoord-instellen of auth callback → altijd doorlaten
+  if (pathname === '/wachtwoord-instellen' || pathname.startsWith('/auth/')) {
+    return supabaseResponse
+  }
+
+  // Check dashboard_role via service_role (bypast RLS)
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -46,16 +51,19 @@ export async function proxy(request: NextRequest) {
 
   const { data: profile } = await adminClient
     .from('profiles')
-    .select('is_admin')
+    .select('dashboard_role')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_admin) {
-    if (isLoginPage) return supabaseResponse
+  const heeftToegang = !!profile?.dashboard_role
+
+  if (!heeftToegang) {
+    if (pathname === '/login') return supabaseResponse
     return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
 
-  if (isLoginPage) {
+  // Ingelogd met toegang op login-pagina → naar dashboard
+  if (pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
@@ -64,6 +72,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -37,6 +37,7 @@ export type CityEvent = {
 }
 
 export type CityEventInput = {
+  province_id?: string | null
   name: string
   description: string | null
   event_type: CityEventType | null
@@ -51,12 +52,14 @@ export type CityEventInput = {
   active: boolean
 }
 
-export async function getCityEvents(): Promise<CityEvent[]> {
-  const { data, error } = await adminClient()
+export async function getCityEvents(province_id?: string): Promise<CityEvent[]> {
+  let query = adminClient()
     .from('city_events')
     .select('*')
     .order('start_date', { ascending: true })
+  if (province_id) query = query.eq('province_id', province_id)
 
+  const { data, error } = await query
   if (error) throw new Error(error.message)
   return data as CityEvent[]
 }
