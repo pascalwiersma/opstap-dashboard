@@ -6,7 +6,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import type { Venue, VenueInput } from '@/app/actions/venues'
 import { createVenue, updateVenue, deleteVenue } from '@/app/actions/venues'
 import { VenuePanel } from './venue-panel'
-import { Plus } from 'lucide-react'
+import { Plus, Layers } from 'lucide-react'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
@@ -44,6 +44,7 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
   const [venues, setVenues] = useState<Venue[]>(initialVenues)
   const [panel, setPanel] = useState<PanelState>(null)
   const [addMode, setAddMode] = useState(false)
+  const [osmVisible, setOsmVisible] = useState(true)
   const addModeRef = useRef(false)
   const panelRef = useRef<PanelState>(null)
 
@@ -81,6 +82,75 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
 
     m.on('load', () => {
+      // OSM referentielaag — bars, cafés en clubs uit OpenStreetMap
+      const overpassQuery = `
+        [out:json][timeout:15];
+        (
+          node["amenity"="bar"](53.17,6.50,53.27,6.64);
+          node["amenity"="cafe"](53.17,6.50,53.27,6.64);
+          node["amenity"="nightclub"](53.17,6.50,53.27,6.64);
+          node["amenity"="pub"](53.17,6.50,53.27,6.64);
+        );
+        out body;
+      `.trim()
+
+      fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
+        .then(r => r.json())
+        .then((data: { elements: { type: string; lat: number; lon: number; tags?: Record<string, string> }[] }) => {
+          const geojson: GeoJSON.FeatureCollection = {
+            type: 'FeatureCollection',
+            features: data.elements
+              .filter(el => el.type === 'node')
+              .map(el => ({
+                type: 'Feature' as const,
+                geometry: { type: 'Point' as const, coordinates: [el.lon, el.lat] },
+                properties: { name: el.tags?.name ?? '', amenity: el.tags?.amenity ?? '' },
+              })),
+          }
+          if (m.getSource('osm-horeca')) {
+            (m.getSource('osm-horeca') as mapboxgl.GeoJSONSource).setData(geojson)
+          }
+        })
+        .catch(() => {/* stil falen als Overpass niet bereikbaar is */})
+
+      m.addSource('osm-horeca', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+
+      m.addLayer({
+        id: 'osm-horeca-pins',
+        type: 'circle',
+        source: 'osm-horeca',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': '#ffffff',
+          'circle-opacity': 0.25,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 0.5,
+        },
+      })
+
+      m.addLayer({
+        id: 'osm-horeca-labels',
+        type: 'symbol',
+        source: 'osm-horeca',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 10,
+          'text-offset': [0, 1.2],
+          'text-anchor': 'top',
+          'text-optional': true,
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-opacity': 0.45,
+          'text-halo-color': '#000000',
+          'text-halo-width': 1,
+        },
+      })
+
       // GeoJSON source voor alle venues
       m.addSource('venues', {
         type: 'geojson',
@@ -165,6 +235,15 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
     }
   }, [updateSource])
 
+  // Toggle OSM laag zichtbaarheid
+  useEffect(() => {
+    const m = map.current
+    if (!m || !m.isStyleLoaded()) return
+    const vis = osmVisible ? 'visible' : 'none'
+    if (m.getLayer('osm-horeca-pins')) m.setLayoutProperty('osm-horeca-pins', 'visibility', vis)
+    if (m.getLayer('osm-horeca-labels')) m.setLayoutProperty('osm-horeca-labels', 'visibility', vis)
+  }, [osmVisible])
+
   // Sync GeoJSON wanneer venues wijzigen
   useEffect(() => {
     const excludeId = panelRef.current?.mode === 'edit' ? panelRef.current.venue.id : undefined
@@ -230,18 +309,32 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
       />
 
       {!panel && (
-        <button
-          onClick={() => setAddMode(m => !m)}
-          className={`absolute top-4 left-4 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
-            addMode
-              ? 'bg-violet-600 text-white ring-2 ring-violet-400'
-              : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
-          }`}
-          style={{ cursor: addMode ? 'crosshair' : undefined }}
-        >
-          <Plus className="w-4 h-4" />
-          {addMode ? 'Klik op de kaart...' : 'Venue toevoegen'}
-        </button>
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <button
+            onClick={() => setAddMode(m => !m)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
+              addMode
+                ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+                : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
+            }`}
+            style={{ cursor: addMode ? 'crosshair' : undefined }}
+          >
+            <Plus className="w-4 h-4" />
+            {addMode ? 'Klik op de kaart...' : 'Venue toevoegen'}
+          </button>
+          <button
+            onClick={() => setOsmVisible(v => !v)}
+            title="OpenStreetMap horeca aan/uit"
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all border ${
+              osmVisible
+                ? 'bg-gray-700 text-white border-gray-600'
+                : 'bg-gray-900 text-gray-500 border-gray-700 hover:bg-gray-800'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            OSM
+          </button>
+        </div>
       )}
 
       <div className="absolute bottom-8 left-4 z-10 bg-gray-900/90 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-400 shadow-lg backdrop-blur-sm">

@@ -14,7 +14,7 @@ import { createCityEvent, updateCityEvent, deleteCityEvent } from '@/app/actions
 import { createMeetingArea, updateMeetingArea, deleteMeetingArea } from '@/app/actions/meeting-areas'
 import { VenuePanel } from '../../venues/_components/venue-panel'
 import { EventPanel } from '../../events/_components/event-panel'
-import { MapPin, CalendarDays, Hexagon, X, Check, PenLine, Trash2 } from 'lucide-react'
+import { MapPin, CalendarDays, Hexagon, X, Check, PenLine, Trash2, Layers } from 'lucide-react'
 import { pointInPolygon, polygonCentroid } from '@/lib/geo'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
@@ -163,6 +163,7 @@ export function UnifiedMap({
   const [meetingBezig, setMeetingBezig] = useState(false)
   const [meetingTekenModus, setMeetingTekenModus] = useState(false)
   const [addMode, setAddMode] = useState<AddMode>(null)
+  const [osmVisible, setOsmVisible] = useState(true)
   const [drawingPts, setDrawingPts] = useState<[number, number][]>([])
   const [draggedPos, setDraggedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [buitenGrens, setBuitenGrens] = useState(false)
@@ -340,6 +341,72 @@ export function UnifiedMap({
       m.addSource('venues', { type: 'geojson', data: venueGeoJSON(venuesRef.current) })
       m.addSource('drawing', { type: 'geojson', data: drawingGeoJSON([]) })
       m.addSource('meeting-labels', { type: 'geojson', data: meetingLabelsGeoJSON(areasRef.current) })
+
+      // OSM referentielaag
+      m.addSource('osm-horeca', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+      m.addLayer({
+        id: 'osm-horeca-pins',
+        type: 'circle',
+        source: 'osm-horeca',
+        paint: {
+          'circle-radius': 4,
+          'circle-color': '#ffffff',
+          'circle-opacity': 0.3,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 0.5,
+        },
+      })
+      m.addLayer({
+        id: 'osm-horeca-labels',
+        type: 'symbol',
+        source: 'osm-horeca',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 10,
+          'text-offset': [0, 1.1],
+          'text-anchor': 'top',
+          'text-optional': true,
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-opacity': 0.4,
+          'text-halo-color': '#000000',
+          'text-halo-width': 1,
+        },
+      })
+
+      const overpassQuery = [
+        '[out:json][timeout:15];',
+        '(',
+        'node["amenity"="bar"](53.17,6.50,53.27,6.64);',
+        'node["amenity"="cafe"](53.17,6.50,53.27,6.64);',
+        'node["amenity"="nightclub"](53.17,6.50,53.27,6.64);',
+        'node["amenity"="pub"](53.17,6.50,53.27,6.64);',
+        ');',
+        'out body;',
+      ].join('\n')
+
+      fetch(`https://overpass-api.de/api/interpreter`, {
+        method: 'POST',
+        body: overpassQuery,
+      })
+        .then(r => r.json())
+        .then((data: { elements: { type: string; lat: number; lon: number; tags?: Record<string, string> }[] }) => {
+          const src = m.getSource('osm-horeca') as mapboxgl.GeoJSONSource | undefined
+          if (!src) return
+          src.setData({
+            type: 'FeatureCollection',
+            features: data.elements
+              .filter(el => el.type === 'node')
+              .map(el => ({
+                type: 'Feature' as const,
+                geometry: { type: 'Point' as const, coordinates: [el.lon, el.lat] },
+                properties: { name: el.tags?.name ?? '', amenity: el.tags?.amenity ?? '' },
+              })),
+          })
+        })
+        .catch(() => { /* stil falen */ })
 
       if (userProvince?.polygon) {
         m.addSource('user-province', {
@@ -713,6 +780,14 @@ export function UnifiedMap({
     }
   }
 
+  useEffect(() => {
+    const m = map.current
+    if (!m || !m.isStyleLoaded()) return
+    const vis = osmVisible ? 'visible' : 'none'
+    if (m.getLayer('osm-horeca-pins')) m.setLayoutProperty('osm-horeca-pins', 'visibility', vis)
+    if (m.getLayer('osm-horeca-labels')) m.setLayoutProperty('osm-horeca-labels', 'visibility', vis)
+  }, [osmVisible])
+
   const isDrawing = addMode === 'event-region'
   const canFinish = drawingPts.length >= 3
 
@@ -742,6 +817,19 @@ export function UnifiedMap({
               >
                 <MapPin className="w-4 h-4" />
                 {addMode === 'venue' ? 'Klik op de kaart...' : 'Venue toevoegen'}
+              </button>
+
+              <button
+                onClick={() => setOsmVisible(v => !v)}
+                title="OpenStreetMap horeca referentie aan/uit"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all border ${
+                  osmVisible
+                    ? 'bg-gray-700 text-white border-gray-600'
+                    : 'bg-gray-900 text-gray-500 border-gray-700 hover:bg-gray-800'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                OSM horeca
               </button>
 
               <div className="flex items-center gap-2 mt-1">
