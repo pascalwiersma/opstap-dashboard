@@ -7,11 +7,11 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import type { Venue, VenueInput } from '@/app/actions/venues'
 import type { CityEvent, CityEventInput } from '@/app/actions/city-events'
-import type { MeetingArea } from '@/app/actions/meeting-areas'
+import type { MeetingArea, ZoneCategorie } from '@/app/actions/meeting-areas'
 import type { Province } from '@/app/actions/provinces'
 import { createVenue, updateVenue, deleteVenue } from '@/app/actions/venues'
 import { createCityEvent, updateCityEvent, deleteCityEvent } from '@/app/actions/city-events'
-import { createMeetingArea, updateMeetingArea, deleteMeetingArea } from '@/app/actions/meeting-areas'
+import { createMeetingArea, updateMeetingArea, deleteMeetingArea, ZONE_CATEGORIEEN, zonekleur } from '@/app/actions/meeting-areas'
 import { VenuePanel } from '../../venues/_components/venue-panel'
 import { EventPanel } from '../../events/_components/event-panel'
 import { MapPin, CalendarDays, Hexagon, X, Check, PenLine, Trash2, Layers } from 'lucide-react'
@@ -160,6 +160,7 @@ export function UnifiedMap({
   const [panel, setPanel] = useState<PanelState>(null)
   const [meetingPanel, setMeetingPanel] = useState<MeetingPanelState>(null)
   const [meetingNaam, setMeetingNaam] = useState('')
+  const [meetingCategorie, setMeetingCategorie] = useState<ZoneCategorie>('overig')
   const [meetingBezig, setMeetingBezig] = useState(false)
   const [meetingTekenModus, setMeetingTekenModus] = useState(false)
   const [addMode, setAddMode] = useState<AddMode>(null)
@@ -216,7 +217,7 @@ export function UnifiedMap({
         type: 'Feature',
         id: area.id,
         geometry: { type: 'Polygon', coordinates: [area.polygon] },
-        properties: { naam: area.naam, active: area.active },
+        properties: { naam: area.naam, active: area.active, kleur: zonekleur(area.categorie) },
       })
     }
   }, [])
@@ -261,26 +262,26 @@ export function UnifiedMap({
         {
           id: 'gl-draw-polygon-fill',
           type: 'fill',
-          filter: ['all', ['==', '$type', 'Polygon']],
-          paint: { 'fill-color': MEETING_COLOR, 'fill-opacity': 0.18 },
+          filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'active', 'true']],
+          paint: { 'fill-color': ['coalesce', ['get', 'user_kleur'], MEETING_COLOR], 'fill-opacity': 0.18 },
         },
         {
           id: 'gl-draw-polygon-stroke',
           type: 'line',
-          filter: ['all', ['==', '$type', 'Polygon']],
-          paint: { 'line-color': MEETING_COLOR, 'line-width': 2, 'line-opacity': 0.9 },
+          filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'active', 'true']],
+          paint: { 'line-color': ['coalesce', ['get', 'user_kleur'], MEETING_COLOR], 'line-width': 2, 'line-opacity': 0.9 },
         },
         {
           id: 'gl-draw-polygon-fill-active',
           type: 'fill',
           filter: ['all', ['==', '$type', 'Polygon'], ['==', 'active', 'true']],
-          paint: { 'fill-color': MEETING_COLOR, 'fill-opacity': 0.35 },
+          paint: { 'fill-color': ['coalesce', ['get', 'user_kleur'], MEETING_COLOR], 'fill-opacity': 0.35 },
         },
         {
           id: 'gl-draw-polygon-stroke-active',
           type: 'line',
           filter: ['all', ['==', '$type', 'Polygon'], ['==', 'active', 'true']],
-          paint: { 'line-color': MEETING_COLOR, 'line-width': 2.5, 'line-opacity': 1 },
+          paint: { 'line-color': ['coalesce', ['get', 'user_kleur'], MEETING_COLOR], 'line-width': 2.5, 'line-opacity': 1 },
         },
         {
           id: 'gl-draw-point-midpoint',
@@ -333,6 +334,7 @@ export function UnifiedMap({
       if (!area) return
       setMeetingPanel({ mode: 'edit', area, featureId: feature.id as string })
       setMeetingNaam(area.naam)
+      setMeetingCategorie(area.categorie ?? 'overig')
     })
 
     m.on('load', () => {
@@ -726,6 +728,7 @@ export function UnifiedMap({
     }
     setMeetingPanel(null)
     setMeetingNaam('')
+    setMeetingCategorie('overig')
     draw.current?.changeMode('simple_select')
     setMeetingTekenModus(false)
   }
@@ -744,22 +747,23 @@ export function UnifiedMap({
       if (meetingPanel.mode === 'create') {
         const polygon = getHuidigePolygoon(meetingPanel.featureId)
         if (!polygon) return
-        const nieuw = await createMeetingArea(meetingNaam.trim(), polygon, userProvinceId ?? null)
+        const nieuw = await createMeetingArea(meetingNaam.trim(), meetingCategorie, polygon, userProvinceId ?? null)
         draw.current?.delete(meetingPanel.featureId)
         setAreas(prev => [...prev, nieuw])
       } else {
         const polygon =
           getHuidigePolygoon(meetingPanel.featureId) ??
           (meetingPanel.area.polygon as [number, number][])
-        await updateMeetingArea(meetingPanel.area.id, meetingNaam.trim(), polygon, meetingPanel.area.active)
+        await updateMeetingArea(meetingPanel.area.id, meetingNaam.trim(), meetingCategorie, polygon, meetingPanel.area.active)
         setAreas(prev =>
           prev.map(a =>
-            a.id === meetingPanel.area.id ? { ...a, naam: meetingNaam.trim(), polygon } : a
+            a.id === meetingPanel.area.id ? { ...a, naam: meetingNaam.trim(), categorie: meetingCategorie, polygon } : a
           )
         )
       }
       setMeetingPanel(null)
       setMeetingNaam('')
+      setMeetingCategorie('overig')
       draw.current?.changeMode('simple_select')
     } finally {
       setMeetingBezig(false)
@@ -956,14 +960,30 @@ export function UnifiedMap({
             onChange={e => setMeetingNaam(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && slaOpMeeting()}
             placeholder="Naam (bijv. Vismarkt)"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-orange-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500"
           />
+          <div className="flex flex-wrap gap-1.5">
+            {ZONE_CATEGORIEEN.map(cat => (
+              <button
+                key={cat.value}
+                onClick={() => setMeetingCategorie(cat.value)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                  meetingCategorie === cat.value
+                    ? 'text-white border-transparent'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'
+                }`}
+                style={meetingCategorie === cat.value ? { background: cat.kleur, borderColor: cat.kleur } : undefined}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2">
             <button
               onClick={slaOpMeeting}
               disabled={meetingBezig || !meetingNaam.trim()}
               className="flex-1 flex items-center justify-center gap-2 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
-              style={{ backgroundColor: MEETING_COLOR }}
+              style={{ backgroundColor: zonekleur(meetingCategorie) }}
             >
               <Check className="w-4 h-4" />
               {meetingBezig ? 'Opslaan...' : 'Opslaan'}
