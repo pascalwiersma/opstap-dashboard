@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import {
   LayoutDashboard,
   Map,
+  Flag,
   Globe,
   Users,
   LogOut,
@@ -32,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
+    { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
     { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
     { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
   ].filter(item =>
