@@ -4,11 +4,28 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { inviteBeheerder } from '@/app/actions/beheerders'
 
+type Rol = 'admin' | 'national' | 'provincial'
+
+const ROL_LABELS: Record<Rol, { label: string; omschrijving: string }> = {
+  admin: {
+    label: 'Admin',
+    omschrijving: 'Volledige toegang tot alles',
+  },
+  national: {
+    label: 'Nationaal',
+    omschrijving: 'Toegang tot nationale overzichten en rapportages',
+  },
+  provincial: {
+    label: 'Provinciaal',
+    omschrijving: 'Vertegenwoordiger — provincie wordt apart ingesteld',
+  },
+}
+
 export function NieuwBeheerderForm() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [naam, setNaam] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [rol, setRol] = useState<Rol>('provincial')
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState('')
 
@@ -17,7 +34,7 @@ export function NieuwBeheerderForm() {
     setBezig(true)
     setFout('')
     try {
-      await inviteBeheerder(email, naam, isAdmin ? 'admin' : 'provincial')
+      await inviteBeheerder(email, naam, rol)
       router.push('/beheerders')
       router.refresh()
     } catch (err) {
@@ -59,20 +76,19 @@ export function NieuwBeheerderForm() {
       </div>
 
       <div>
-        <label className="flex items-center gap-3 cursor-pointer group w-fit">
-          <div
-            onClick={() => setIsAdmin(v => !v)}
-            className={`relative w-10 h-6 rounded-full transition-colors ${isAdmin ? 'bg-violet-600' : 'bg-gray-700'}`}
-          >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isAdmin ? 'translate-x-5' : 'translate-x-1'}`} />
-          </div>
-          <div>
-            <span className="text-sm text-white font-medium">Admin</span>
-            <p className="text-xs text-gray-500">
-              {isAdmin ? 'Volledige toegang tot alles' : 'Vertegenwoordiger — provincie wordt apart ingesteld'}
-            </p>
-          </div>
-        </label>
+        <label className="block text-sm text-gray-400 mb-1.5">Rol</label>
+        <select
+          value={rol}
+          onChange={e => setRol(e.target.value as Rol)}
+          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors"
+        >
+          {(Object.keys(ROL_LABELS) as Rol[]).map(r => (
+            <option key={r} value={r}>
+              {ROL_LABELS[r].label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1.5">{ROL_LABELS[rol].omschrijving}</p>
       </div>
 
       <div className="flex gap-3 pt-2">
