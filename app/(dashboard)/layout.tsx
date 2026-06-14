@@ -8,6 +8,8 @@ import {
   Globe,
   Users,
   LogOut,
+  MapPin,
+  CalendarDays,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
@@ -35,6 +37,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
     { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
     { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
+    { href: '/steden', label: 'Steden', icon: MapPin, roles: ['admin'] },
+    { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
     { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
   ].filter(item =>
     item.roles.includes(user.role) &&
