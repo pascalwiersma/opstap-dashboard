@@ -38,6 +38,51 @@ export type VenueInput = {
   opening_hours: Record<string, string> | null
 }
 
+export type VenueZoekResultaat = {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  type: VenueType | null
+}
+
+export async function searchVenues(query: string, cityNaam?: string): Promise<VenueZoekResultaat[]> {
+  const admin = adminClient()
+  if (!query.trim()) return []
+
+  let latMin: number | undefined, latMax: number | undefined
+  let lngMin: number | undefined, lngMax: number | undefined
+
+  if (cityNaam) {
+    const { data: stad } = await admin
+      .from('supported_cities')
+      .select('lat, lng, radius_km')
+      .eq('naam', cityNaam)
+      .single()
+    if (stad) {
+      const degr = (stad.radius_km + 5) / 111
+      latMin = stad.lat - degr; latMax = stad.lat + degr
+      lngMin = stad.lng - degr; lngMax = stad.lng + degr
+    }
+  }
+
+  let q = admin
+    .from('venues')
+    .select('id, name, lat, lng, type')
+    .eq('active', true)
+    .ilike('name', `%${query}%`)
+    .order('name')
+    .limit(8)
+
+  if (latMin !== undefined) {
+    q = q.gte('lat', latMin).lte('lat', latMax!).gte('lng', lngMin!).lte('lng', lngMax!)
+  }
+
+  const { data, error } = await q
+  if (error) throw new Error(error.message)
+  return (data ?? []) as VenueZoekResultaat[]
+}
+
 export async function getVenues(province_id?: string): Promise<Venue[]> {
   let query = adminClient()
     .from('venues')

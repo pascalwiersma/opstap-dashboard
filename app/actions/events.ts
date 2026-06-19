@@ -45,6 +45,32 @@ export type EventInput = {
   creator_id: string
 }
 
+export async function getEvent(id: string): Promise<Event | null> {
+  const { data, error } = await adminClient()
+    .from('events')
+    .select('id, title, description, starts_at, venue_id, city, ticket_url, photo_url, lat, lng, max_attendees, status, created_at, venues(name)')
+    .eq('id', id)
+    .single()
+  if (error) return null
+  const r = data as Record<string, unknown>
+  const venues = r.venues as { name: string } | null
+  return { ...r, venue_name: venues?.name ?? null } as Event
+}
+
+export async function uploadEventPhoto(formData: FormData): Promise<string> {
+  const file = formData.get('file') as File
+  if (!file) throw new Error('Geen bestand gevonden.')
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const path = `${crypto.randomUUID()}.${ext}`
+  const bytes = await file.arrayBuffer()
+  const { error: uploadError } = await adminClient()
+    .storage.from('event-photos')
+    .upload(path, bytes, { contentType: file.type, upsert: false })
+  if (uploadError) throw new Error(uploadError.message)
+  const { data } = adminClient().storage.from('event-photos').getPublicUrl(path)
+  return data.publicUrl
+}
+
 export async function getEvents(): Promise<Event[]> {
   const { data, error } = await adminClient()
     .from('events')

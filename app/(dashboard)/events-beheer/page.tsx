@@ -1,6 +1,4 @@
 import { getEvents } from '@/app/actions/events'
-import { getVenues } from '@/app/actions/venues'
-import { getSteden } from '@/app/actions/steden'
 import { getCurrentUser } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { EventsLijst } from './_components/events-lijst'
@@ -10,11 +8,7 @@ export default async function EventsBeheerPage() {
   const user = await getCurrentUser()
   if (!user || user.role !== 'admin') redirect('/')
 
-  const [events, venues, steden] = await Promise.all([
-    getEvents(),
-    getVenues(),
-    getSteden(),
-  ])
+  const events = await getEvents()
 
   return (
     <div className="p-8">
@@ -25,12 +19,7 @@ export default async function EventsBeheerPage() {
       <p className="text-gray-400 text-sm mb-8">
         Evenementen beheren — aanmaken, bewerken en verwijderen
       </p>
-      <EventsLijst
-        initialEvents={events}
-        venues={venues}
-        steden={steden}
-        currentUserId={user.id}
-      />
+      <EventsLijst initialEvents={events} />
     </div>
   )
 }
