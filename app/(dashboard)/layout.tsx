@@ -11,6 +11,7 @@ import {
   MapPin,
   CalendarDays,
   Tags,
+  Bug,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
@@ -37,6 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
     { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
+    { href: '/bugs', label: 'Bugs', icon: Bug, roles: ['admin', 'national'] },
     { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
     { href: '/steden', label: 'Steden', icon: MapPin, roles: ['admin'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
