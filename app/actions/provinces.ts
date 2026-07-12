@@ -17,13 +17,14 @@ export type Province = {
   polygon: [number, number][] | null
   center_lat: number
   center_lng: number
+  actief: boolean
   created_at: string
 }
 
 export async function getProvinces(): Promise<Province[]> {
   const { data, error } = await adminClient()
     .from('provinces')
-    .select('id, name, polygon, center_lat, center_lng, created_at')
+    .select('id, name, polygon, center_lat, center_lng, actief, created_at')
     .order('name')
 
   if (error) throw new Error(error.message)
@@ -39,12 +40,22 @@ export async function createProvince(naam: string, polygon: [number, number][]):
   const { data, error } = await adminClient()
     .from('provinces')
     .insert({ name: naam, polygon, center_lat, center_lng })
-    .select('id, name, polygon, center_lat, center_lng, created_at')
+    .select('id, name, polygon, center_lat, center_lng, actief, created_at')
     .single()
 
   if (error) throw new Error(error.message)
   revalidatePath('/provincies')
   return data as Province
+}
+
+export async function updateProvinceActief(id: string, actief: boolean) {
+  const { error } = await adminClient()
+    .from('provinces')
+    .update({ actief })
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/provincies')
 }
 
 export async function updateProvince(id: string, naam: string, polygon: [number, number][]) {
