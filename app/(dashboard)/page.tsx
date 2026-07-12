@@ -18,7 +18,7 @@ async function AdminDashboard() {
   return (
     <>
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-        <StatsCard title="App-gebruikers" value={stats.totalUsers} icon={Users} color="bg-violet-600" />
+        <StatsCard title="App-gebruikers" value={stats.totalUsers} icon={Users} color="bg-opstap-orange-600" />
         <StatsCard title="Nieuwe gebruikers (7d)" value={stats.newUsersWeek} icon={UserPlus} color="bg-blue-600" />
         <StatsCard title="Ingecheckt vandaag" value={stats.checkinsVandaag} icon={LogIn} color="bg-emerald-600" />
         <StatsCard title="Inchecks (7d)" value={stats.checkinsWeek} icon={CalendarCheck} color="bg-teal-600" />
@@ -59,7 +59,7 @@ async function VertegenwoordigerDashboard({ province_id, province_name }: { prov
   return (
     <>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-violet-600" />
+        <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-opstap-orange-600" />
         <StatsCard title="Evenementen" value={stats.events} icon={CalendarDays} color="bg-blue-600" />
         <StatsCard title="Meeting areas" value={stats.areas} icon={Hexagon} color="bg-emerald-600" />
         <StatsCard title="Registraties (7d)" value={stats.registratiesWeek} icon={ClipboardList} color="bg-orange-600" />

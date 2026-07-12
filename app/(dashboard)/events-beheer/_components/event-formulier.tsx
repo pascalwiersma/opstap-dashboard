@@ -176,7 +176,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
     })
   }
 
-  const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors'
+  const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors'
 
   return (
     <div className="max-w-2xl">
@@ -272,7 +272,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
                   onClick={() => wisselLocatieModus(modus)}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     locatieModus === modus
-                      ? 'bg-violet-600 text-white'
+                      ? 'bg-opstap-orange-600 text-white'
                       : 'bg-gray-800 text-gray-400 hover:text-white'
                   }`}
                 >
@@ -287,7 +287,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
             <div>
               {geselecteerdeVenue ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-gray-800 border border-violet-600/40 rounded-lg px-3 py-2.5">
+                  <div className="flex items-center justify-between bg-gray-800 border border-opstap-orange-600/40 rounded-lg px-3 py-2.5">
                     <span className="text-sm text-white font-medium">{geselecteerdeVenue.name}</span>
                     <button onClick={verwijderVenue} className="text-gray-400 hover:text-white transition-colors ml-2">
                       <X className="w-4 h-4" />
@@ -370,7 +370,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-36 border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-violet-500 hover:text-gray-400 transition-colors"
+              className="w-full h-36 border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-opstap-orange-500 hover:text-gray-400 transition-colors"
             >
               <Upload className="w-6 h-6" />
               <span className="text-sm">Klik om een foto te uploaden</span>
@@ -402,7 +402,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
           <button
             onClick={handleOpslaan}
             disabled={pending}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
           >
             {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {pending ? 'Opslaan...' : 'Opslaan'}

@@ -231,7 +231,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
           onClick={startTekenen}
           className={`absolute top-4 left-4 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
             tekenModus
-              ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+              ? 'bg-opstap-orange-600 text-white ring-2 ring-opstap-orange-400'
               : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
           }`}
         >
@@ -290,7 +290,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
             onChange={e => setNaam(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && slaOp()}
             placeholder="Naam (bijv. Vismarkt)"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500"
           />
 
           <div className="flex flex-wrap gap-1.5">
@@ -314,7 +314,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
             <button
               onClick={slaOp}
               disabled={bezig || !naam.trim()}
-              className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
             >
               <Check className="w-4 h-4" />
               {bezig ? 'Opslaan...' : 'Opslaan'}

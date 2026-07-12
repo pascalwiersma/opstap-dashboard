@@ -180,7 +180,7 @@ export function InteressesLijst({
         </p>
         <button
           onClick={openNieuweCategorie}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Categorie toevoegen
@@ -207,7 +207,7 @@ export function InteressesLijst({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => openNieuweTag(cat.id)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-violet-300 hover:text-white hover:bg-violet-600/20 rounded-lg transition-colors"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-opstap-orange-300 hover:text-white hover:bg-opstap-orange-600/20 rounded-lg transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Tag toevoegen
@@ -300,7 +300,7 @@ export function InteressesLijst({
                   value={catForm.name}
                   onChange={e => setCatForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Muziek"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 />
               </div>
               <div>
@@ -309,7 +309,7 @@ export function InteressesLijst({
                   type="number"
                   value={catForm.sort_order}
                   onChange={e => setCatForm(prev => ({ ...prev, sort_order: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 />
               </div>
 
@@ -328,7 +328,7 @@ export function InteressesLijst({
               <button
                 onClick={handleOpslaanCategorie}
                 disabled={bezig}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
               >
                 {bezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {bezig ? 'Opslaan...' : 'Opslaan'}
@@ -357,7 +357,7 @@ export function InteressesLijst({
                 <select
                   value={tagForm.category_id}
                   onChange={e => setTagForm(prev => ({ ...prev, category_id: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 >
                   <option value="" disabled>Kies een categorie</option>
                   {sortedCategorieen.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -371,7 +371,7 @@ export function InteressesLijst({
                     value={tagForm.label}
                     onChange={e => setTagForm(prev => ({ ...prev, label: e.target.value }))}
                     placeholder="Housemuziek"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -379,7 +379,7 @@ export function InteressesLijst({
                   <input
                     value={tagForm.emoji}
                     onChange={e => setTagForm(prev => ({ ...prev, emoji: e.target.value }))}
-                    className="w-16 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-16 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-opstap-orange-500 transition-colors"
                   />
                 </div>
               </div>
@@ -391,7 +391,7 @@ export function InteressesLijst({
                     type="number"
                     value={tagForm.sort_order}
                     onChange={e => setTagForm(prev => ({ ...prev, sort_order: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-opstap-orange-500 transition-colors"
                   />
                 </div>
                 <label className="flex items-center gap-2 pb-2 text-sm text-gray-300 cursor-pointer">
@@ -399,7 +399,7 @@ export function InteressesLijst({
                     type="checkbox"
                     checked={tagForm.active}
                     onChange={e => setTagForm(prev => ({ ...prev, active: e.target.checked }))}
-                    className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-violet-600 focus:ring-violet-500"
+                    className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-opstap-orange-600 focus:ring-opstap-orange-500"
                   />
                   Actief (zichtbaar in de app)
                 </label>
@@ -420,7 +420,7 @@ export function InteressesLijst({
               <button
                 onClick={handleOpslaanTag}
                 disabled={bezig}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
               >
                 {bezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {bezig ? 'Opslaan...' : 'Opslaan'}

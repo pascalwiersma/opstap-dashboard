@@ -191,7 +191,7 @@ export function GebiedKiezer({ cityCenter, onChange }: Props) {
               disabled={punten.length < 3}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
                 punten.length >= 3
-                  ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                  ? 'bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white'
                   : 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >

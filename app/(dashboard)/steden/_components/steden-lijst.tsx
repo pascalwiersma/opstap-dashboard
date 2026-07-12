@@ -124,7 +124,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
         </p>
         <button
           onClick={openNieuw}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Stad toevoegen
@@ -212,7 +212,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
                   value={form.naam}
                   onChange={e => updateForm('naam', e.target.value)}
                   placeholder="Groningen"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 />
               </div>
 
@@ -221,7 +221,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
                 <select
                   value={form.provincie}
                   onChange={e => updateForm('provincie', e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 >
                   {PROVINCIES.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
@@ -236,7 +236,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
                     value={form.lat}
                     onChange={e => updateForm('lat', e.target.value)}
                     placeholder="53.2194"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -247,7 +247,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
                     value={form.lng}
                     onChange={e => updateForm('lng', e.target.value)}
                     placeholder="6.5665"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                   />
                 </div>
               </div>
@@ -260,7 +260,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
                   min="1"
                   value={form.radius_km}
                   onChange={e => updateForm('radius_km', e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 />
               </div>
 
@@ -279,7 +279,7 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
               <button
                 onClick={handleOpslaan}
                 disabled={bezig}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
               >
                 {bezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {bezig ? 'Opslaan...' : 'Opslaan'}

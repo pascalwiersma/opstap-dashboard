@@ -314,7 +314,7 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
             onClick={() => setAddMode(m => !m)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
               addMode
-                ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+                ? 'bg-opstap-orange-600 text-white ring-2 ring-opstap-orange-400'
                 : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
             }`}
             style={{ cursor: addMode ? 'crosshair' : undefined }}

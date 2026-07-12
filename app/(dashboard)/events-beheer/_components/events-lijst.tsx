@@ -47,7 +47,7 @@ export function EventsLijst({ initialEvents }: Props) {
         <p className="text-gray-400 text-sm">{events.length} event{events.length !== 1 ? 's' : ''}</p>
         <button
           onClick={() => router.push('/events-beheer/nieuw')}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Event toevoegen
