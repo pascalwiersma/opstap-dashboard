@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Tags,
   Bug,
+  MessageSquare,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
@@ -23,7 +24,7 @@ const ROL_LABEL: Record<string, string> = {
 }
 
 const ROL_KLEUR: Record<string, string> = {
-  admin: 'bg-violet-600',
+  admin: 'bg-opstap-purple-600',
   national: 'bg-emerald-600',
   provincial: 'bg-emerald-600',
 }
@@ -39,6 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
     { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
     { href: '/bugs', label: 'Bugs', icon: Bug, roles: ['admin', 'national'] },
+    { href: '/feedback', label: 'Feedback', icon: MessageSquare, roles: ['admin', 'national'] },
     { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
     { href: '/steden', label: 'Steden', icon: MapPin, roles: ['admin'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
@@ -54,11 +56,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar */}
       <aside className="w-60 shrink-0 flex flex-col bg-gray-900 border-r border-gray-800">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-800">
-          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
-            <span className="text-white text-sm font-bold">O</span>
-          </div>
-          <span className="text-white font-semibold text-base tracking-tight">OpStap</span>
+        <div className="flex items-center justify-center px-5 py-6 border-b border-gray-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="OpStap" className="w-14 h-14 object-contain" />
         </div>
 
         {/* Navigatie */}
@@ -69,7 +69,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               href={href}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors text-sm font-medium group"
             >
-              <Icon className="w-4 h-4 shrink-0 group-hover:text-violet-400 transition-colors" />
+              <Icon className="w-4 h-4 shrink-0 group-hover:text-opstap-orange-400 transition-colors" />
               {label}
             </Link>
           ))}
@@ -86,7 +86,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <span className="text-xs text-gray-400 truncate">{user.province_name}</span>
               )}
             </div>
-            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            <p className="text-xs text-gray-500 truncate">{user.phone}</p>
           </div>
 
           <form action={signOut}>

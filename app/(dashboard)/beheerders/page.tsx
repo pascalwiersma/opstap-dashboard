@@ -22,10 +22,10 @@ export default async function BeheerderPage() {
         </div>
         <Link
           href="/beheerders/nieuw"
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <UserPlus className="w-4 h-4" />
-          Uitnodigen
+          Toevoegen
         </Link>
       </div>
       <BeheerdersList initialBeheerders={beheerders} />

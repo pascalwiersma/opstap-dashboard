@@ -11,7 +11,7 @@ function adminClient() {
   )
 }
 
-export type RapportStatus = 'nieuw' | 'in_behandeling' | 'afgehandeld'
+export type RapportStatus = 'nieuw' | 'in_behandeling' | 'afgehandeld' | 'ingetrokken'
 
 export type Rapport = {
   id: string

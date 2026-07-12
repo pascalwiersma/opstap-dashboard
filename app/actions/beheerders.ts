@@ -5,24 +5,31 @@ import { revalidatePath } from 'next/cache'
 
 export type Beheerder = {
   id: string
-  email: string | null
+  phone: string | null
   name: string | null
   dashboard_role: 'admin' | 'national' | 'provincial'
   province_id: string | null
   province_name: string | null
 }
 
+function normalizePhone(input: string): string | null {
+  const cleaned = input.replace(/[\s\-]/g, '')
+  if (/^06\d{8}$/.test(cleaned)) return '+31' + cleaned.slice(1)
+  if (/^\+316\d{8}$/.test(cleaned)) return cleaned
+  return null
+}
+
 export async function getBeheerder(id: string): Promise<Beheerder | null> {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, dashboard_role, province_id, provinces(name)')
+    .select('id, phone, name, dashboard_role, province_id, provinces(name)')
     .eq('id', id)
     .single()
 
   if (error) return null
   return {
     id: data.id,
-    email: data.email,
+    phone: data.phone,
     name: data.name,
     dashboard_role: data.dashboard_role as 'admin' | 'national' | 'provincial',
     province_id: data.province_id,
@@ -33,7 +40,7 @@ export async function getBeheerder(id: string): Promise<Beheerder | null> {
 export async function getBeheerders(): Promise<Beheerder[]> {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, dashboard_role, province_id, provinces(name)')
+    .select('id, phone, name, dashboard_role, province_id, provinces(name)')
     .not('dashboard_role', 'is', null)
     .order('name')
 
@@ -41,7 +48,7 @@ export async function getBeheerders(): Promise<Beheerder[]> {
 
   return (data ?? []).map(p => ({
     id: p.id,
-    email: p.email,
+    phone: p.phone,
     name: p.name,
     dashboard_role: p.dashboard_role as 'admin' | 'national' | 'provincial',
     province_id: p.province_id,
@@ -49,23 +56,32 @@ export async function getBeheerders(): Promise<Beheerder[]> {
   }))
 }
 
-export async function inviteBeheerder(
-  email: string,
+export async function addBeheerder(
+  phone: string,
   name: string,
   role: 'admin' | 'national' | 'provincial',
   province_id?: string
 ) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl}/auth/callback?type=invite`,
+  const normalized = normalizePhone(phone)
+  if (!normalized) throw new Error('Ongeldig telefoonnummer. Gebruik een Nederlands mobiel nummer, bijv. 06 12345678.')
+
+  const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    phone: normalized,
+    phone_confirm: true,
   })
-  if (inviteError) throw new Error(inviteError.message)
+  if (createError) {
+    throw new Error(
+      createError.message.includes('already been registered')
+        ? 'Dit telefoonnummer heeft al een account. Neem contact op als dit een bestaande gebruiker betreft.'
+        : createError.message
+    )
+  }
 
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .upsert({
       id: data.user.id,
-      email,
+      phone: normalized,
       name,
       dashboard_role: role,
       province_id: province_id || null,

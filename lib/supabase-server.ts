@@ -38,7 +38,7 @@ function adminClient() {
 
 export type CurrentUser = {
   id: string
-  email: string
+  phone: string
   name: string | null
   role: 'admin' | 'national' | 'provincial'
   province_id: string | null
@@ -71,7 +71,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   return {
     id: user.id,
-    email: user.email ?? '',
+    phone: user.phone ?? '',
     name: profile.name,
     role: profile.dashboard_role as 'admin' | 'national' | 'provincial',
     province_id: profile.province_id,

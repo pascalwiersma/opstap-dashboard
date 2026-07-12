@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { inviteBeheerder } from '@/app/actions/beheerders'
+import { addBeheerder } from '@/app/actions/beheerders'
 
 export function NieuwBeheerderForm() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [naam, setNaam] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [bezig, setBezig] = useState(false)
@@ -17,7 +17,7 @@ export function NieuwBeheerderForm() {
     setBezig(true)
     setFout('')
     try {
-      await inviteBeheerder(email, naam, isAdmin ? 'admin' : 'provincial')
+      await addBeheerder(phone, naam, isAdmin ? 'admin' : 'provincial')
       router.push('/beheerders')
       router.refresh()
     } catch (err) {
@@ -42,18 +42,18 @@ export function NieuwBeheerderForm() {
             value={naam}
             onChange={e => setNaam(e.target.value)}
             placeholder="Jan de Vries"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500 transition-colors"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1.5">E-mailadres</label>
+          <label className="block text-sm text-gray-400 mb-1.5">Telefoonnummer</label>
           <input
             required
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="jan@opstap.nl"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
+            type="tel"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="06 12345678"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500 transition-colors"
           />
         </div>
       </div>
@@ -62,7 +62,7 @@ export function NieuwBeheerderForm() {
         <label className="flex items-center gap-3 cursor-pointer group w-fit">
           <div
             onClick={() => setIsAdmin(v => !v)}
-            className={`relative w-10 h-6 rounded-full transition-colors ${isAdmin ? 'bg-violet-600' : 'bg-gray-700'}`}
+            className={`relative w-10 h-6 rounded-full transition-colors ${isAdmin ? 'bg-opstap-orange-600' : 'bg-gray-700'}`}
           >
             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isAdmin ? 'translate-x-5' : 'translate-x-1'}`} />
           </div>
@@ -79,9 +79,9 @@ export function NieuwBeheerderForm() {
         <button
           type="submit"
           disabled={bezig}
-          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+          className="px-5 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
         >
-          {bezig ? 'Uitnodiging versturen...' : 'Uitnodiging versturen'}
+          {bezig ? 'Toevoegen...' : 'Beheerder toevoegen'}
         </button>
         <button
           type="button"

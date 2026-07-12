@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Ban, CheckCircle, Clock, Flag, Shield } from 'lucide-react'
+import { AlertTriangle, Ban, CheckCircle, Clock, Flag, Shield, XCircle } from 'lucide-react'
 import type { Rapport, RapportStatus } from '@/app/actions/reports'
 import { waarschuwGebruiker, banGebruiker, sluitRapport } from '@/app/actions/reports'
 
@@ -10,6 +10,7 @@ const STATUS_CONFIG: Record<RapportStatus, { label: string; kleur: string; icon:
   nieuw: { label: 'Nieuw', kleur: 'bg-orange-500/15 text-orange-400 border border-orange-500/30', icon: AlertTriangle },
   in_behandeling: { label: 'In behandeling', kleur: 'bg-blue-500/15 text-blue-400 border border-blue-500/30', icon: Clock },
   afgehandeld: { label: 'Afgehandeld', kleur: 'bg-gray-700/50 text-gray-400 border border-gray-600/30', icon: CheckCircle },
+  ingetrokken: { label: 'Ingetrokken', kleur: 'bg-gray-800/60 text-gray-500 border border-gray-700/50', icon: XCircle },
 }
 
 const FILTER_OPTIES: { label: string; waarde: RapportStatus | 'alle' }[] = [
@@ -91,7 +92,7 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
             onClick={() => setFilter(opt.waarde)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === opt.waarde
-                ? 'bg-violet-600 text-white'
+                ? 'bg-opstap-orange-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
           >
@@ -127,7 +128,7 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
             <tbody className="divide-y divide-gray-800">
               {gefilterd.map(rapport => {
                 const isNieuw = rapport.status === 'nieuw'
-                const isAfgehandeld = rapport.status === 'afgehandeld'
+                const isGesloten = rapport.status === 'afgehandeld' || rapport.status === 'ingetrokken'
                 return (
                   <tr
                     key={rapport.id}
@@ -153,7 +154,7 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
                       <StatusBadge status={rapport.status} />
                     </td>
                     <td className="px-4 py-3">
-                      {!isAfgehandeld && (
+                      {!isGesloten && (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleWaarschuw(rapport)}

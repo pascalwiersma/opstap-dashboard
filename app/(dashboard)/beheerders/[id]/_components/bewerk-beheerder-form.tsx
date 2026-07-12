@@ -53,9 +53,9 @@ export function BewerkBeheerderForm({
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1.5">E-mailadres</label>
+          <label className="block text-sm text-gray-400 mb-1.5">Telefoonnummer</label>
           <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-gray-400">
-            {beheerder.email ?? '—'}
+            {beheerder.phone ?? '—'}
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function BewerkBeheerderForm({
         <label className="flex items-center gap-3 cursor-pointer w-fit">
           <div
             onClick={() => setAdmin(v => !v)}
-            className={`relative w-10 h-6 rounded-full transition-colors ${admin ? 'bg-violet-600' : 'bg-gray-700'}`}
+            className={`relative w-10 h-6 rounded-full transition-colors ${admin ? 'bg-opstap-orange-600' : 'bg-gray-700'}`}
           >
             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${admin ? 'translate-x-5' : 'translate-x-1'}`} />
           </div>
@@ -86,7 +86,7 @@ export function BewerkBeheerderForm({
             <select
               value={provinceId}
               onChange={e => setProvinceId(e.target.value)}
-              className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-violet-500 transition-colors"
+              className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
             >
               <option value="">Geen provincie toegewezen</option>
               {provinces.map(p => (
@@ -102,7 +102,7 @@ export function BewerkBeheerderForm({
         <button
           type="submit"
           disabled={bezig}
-          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+          className="px-5 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
         >
           {bezig ? 'Opslaan...' : 'Opslaan'}
         </button>

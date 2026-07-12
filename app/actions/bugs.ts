@@ -11,7 +11,7 @@ function adminClient() {
   )
 }
 
-export type BugStatus = 'nieuw' | 'in_behandeling' | 'afgehandeld'
+export type BugStatus = 'nieuw' | 'in_behandeling' | 'afgehandeld' | 'ingetrokken'
 export type BugCategory = 'crash' | 'onjuiste_data' | 'traag' | 'anders'
 
 export type BugReport = {

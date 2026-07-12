@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 
 const ROL_LABEL: Record<string, string> = { admin: 'Admin', national: 'Vertegenwoordiger', provincial: 'Vertegenwoordiger' }
 const ROL_KLEUR: Record<string, string> = {
-  admin: 'bg-violet-600/20 text-violet-300 border-violet-600/30',
+  admin: 'bg-opstap-purple-600/20 text-opstap-purple-300 border-opstap-purple-600/30',
   national: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30',
   provincial: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30',
 }
@@ -34,7 +34,7 @@ export function BeheerdersList({ initialBeheerders }: { initialBeheerders: Behee
   if (beheerders.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-xl px-6 py-10 text-center text-gray-500 text-sm">
-        Nog geen beheerders — nodig iemand uit.
+        Nog geen beheerders — voeg iemand toe.
       </div>
     )
   }
@@ -55,7 +55,7 @@ export function BeheerdersList({ initialBeheerders }: { initialBeheerders: Behee
             <tr key={b.id} className="hover:bg-gray-800/40 transition-colors">
               <td className="px-5 py-3.5">
                 <div className="text-white font-medium">{b.name ?? '—'}</div>
-                <div className="text-gray-500 text-xs">{b.email}</div>
+                <div className="text-gray-500 text-xs">{b.phone}</div>
               </td>
               <td className="px-5 py-3.5">
                 <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${ROL_KLEUR[b.dashboard_role]}`}>
