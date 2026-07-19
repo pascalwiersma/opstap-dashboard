@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Trash2, Pencil, Plus, X, Save, Loader2 } from 'lucide-react'
 import type { Stad, StadInput } from '@/app/actions/steden'
 import { createStad, updateStad, deleteStad } from '@/app/actions/steden'
+import { StedenMap } from './steden-map'
 
 const PROVINCIES = [
   'Drenthe', 'Flevoland', 'Friesland', 'Gelderland', 'Groningen',
@@ -118,6 +119,11 @@ export function StedenLijst({ initialSteden }: { initialSteden: Stad[] }) {
 
   return (
     <>
+      <div className="mb-6">
+        <StedenMap steden={steden} onSelect={openBewerk} />
+        <p className="text-xs text-gray-500 mt-2">Klik op een stad of cirkel op de kaart om de radius te bewerken.</p>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <p className="text-gray-400 text-sm">
           {steden.length} stad{steden.length !== 1 ? 'en' : ''}

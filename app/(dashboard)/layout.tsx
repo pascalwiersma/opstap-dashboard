@@ -86,7 +86,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <span className="text-xs text-gray-400 truncate">{user.province_name}</span>
               )}
             </div>
-            <p className="text-xs text-gray-500 truncate">{user.phone}</p>
+            <p className="text-xs text-gray-500 truncate">{user.name ?? user.phone}</p>
           </div>
 
           <form action={signOut}>

@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addBeheerder } from '@/app/actions/beheerders'
+import type { Province } from '@/app/actions/provinces'
+import { ChevronDown } from 'lucide-react'
 
-export function NieuwBeheerderForm() {
+export function NieuwBeheerderForm({ provinces }: { provinces: Province[] }) {
   const router = useRouter()
   const [phone, setPhone] = useState('')
   const [naam, setNaam] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [provinceId, setProvinceId] = useState('')
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState('')
 
@@ -17,7 +20,7 @@ export function NieuwBeheerderForm() {
     setBezig(true)
     setFout('')
     try {
-      await addBeheerder(phone, naam, isAdmin ? 'admin' : 'provincial')
+      await addBeheerder(phone, naam, isAdmin ? 'admin' : 'provincial', provinceId || undefined)
       router.push('/beheerders')
       router.refresh()
     } catch (err) {
@@ -69,10 +72,27 @@ export function NieuwBeheerderForm() {
           <div>
             <span className="text-sm text-white font-medium">Admin</span>
             <p className="text-xs text-gray-500">
-              {isAdmin ? 'Volledige toegang tot alles' : 'Vertegenwoordiger — provincie wordt apart ingesteld'}
+              {isAdmin ? 'Volledige toegang tot alles, optioneel ook vertegenwoordiger van een provincie' : 'Vertegenwoordiger — provincie bepaalt toegang'}
             </p>
           </div>
         </label>
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-400 mb-1.5">Provincie</label>
+        <div className="relative max-w-xs">
+          <select
+            value={provinceId}
+            onChange={e => setProvinceId(e.target.value)}
+            className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
+          >
+            <option value="">Geen provincie toegewezen</option>
+            {provinces.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-2">

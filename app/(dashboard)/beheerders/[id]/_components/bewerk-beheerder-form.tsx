@@ -27,7 +27,7 @@ export function BewerkBeheerderForm({
     setFout('')
     try {
       const role = admin ? 'admin' : 'provincial'
-      await updateBeheerder(beheerder.id, role, !admin ? (provinceId || null) : null)
+      await updateBeheerder(beheerder.id, role, provinceId || null)
       router.push('/beheerders')
       router.refresh()
     } catch (err) {
@@ -72,31 +72,29 @@ export function BewerkBeheerderForm({
           <div>
             <span className="text-sm text-white font-medium">Admin</span>
             <p className="text-xs text-gray-500">
-              {admin ? 'Volledige toegang tot alles' : 'Vertegenwoordiger — provincie bepaalt toegang'}
+              {admin ? 'Volledige toegang tot alles, optioneel ook vertegenwoordiger van een provincie' : 'Vertegenwoordiger — provincie bepaalt toegang'}
             </p>
           </div>
         </label>
       </div>
 
-      {/* Province — alleen voor niet-admins */}
-      {!admin && (
-        <div>
-          <label className="block text-sm text-gray-400 mb-1.5">Provincie</label>
-          <div className="relative max-w-xs">
-            <select
-              value={provinceId}
-              onChange={e => setProvinceId(e.target.value)}
-              className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
-            >
-              <option value="">Geen provincie toegewezen</option>
-              {provinces.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
-          </div>
+      {/* Province — voor niet-admins verplicht voor toegang, voor admins optioneel */}
+      <div>
+        <label className="block text-sm text-gray-400 mb-1.5">Provincie</label>
+        <div className="relative max-w-xs">
+          <select
+            value={provinceId}
+            onChange={e => setProvinceId(e.target.value)}
+            className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
+          >
+            <option value="">Geen provincie toegewezen</option>
+            {provinces.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
         </div>
-      )}
+      </div>
 
       <div className="flex gap-3 pt-2">
         <button
