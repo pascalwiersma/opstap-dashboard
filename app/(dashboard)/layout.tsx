@@ -13,6 +13,7 @@ import {
   Tags,
   Bug,
   MessageSquare,
+  Megaphone,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
@@ -21,12 +22,14 @@ const ROL_LABEL: Record<string, string> = {
   admin: 'Admin',
   national: 'Vertegenwoordiger',
   provincial: 'Vertegenwoordiger',
+  marketing: 'Marketing',
 }
 
 const ROL_KLEUR: Record<string, string> = {
   admin: 'bg-opstap-purple-600',
   national: 'bg-emerald-600',
   provincial: 'bg-emerald-600',
+  marketing: 'bg-pink-600',
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -38,6 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
+    { href: '/marketing', label: 'Marketing', icon: Megaphone, roles: ['admin', 'national', 'marketing'] },
     { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
     { href: '/bugs', label: 'Bugs', icon: Bug, roles: ['admin', 'national'] },
     { href: '/feedback', label: 'Feedback', icon: MessageSquare, roles: ['admin', 'national'] },

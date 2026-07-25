@@ -7,7 +7,7 @@ export type Beheerder = {
   id: string
   phone: string | null
   name: string | null
-  dashboard_role: 'admin' | 'national' | 'provincial'
+  dashboard_role: 'admin' | 'national' | 'provincial' | 'marketing'
   province_id: string | null
   province_name: string | null
 }
@@ -31,7 +31,7 @@ export async function getBeheerder(id: string): Promise<Beheerder | null> {
     id: data.id,
     phone: data.phone,
     name: data.name,
-    dashboard_role: data.dashboard_role as 'admin' | 'national' | 'provincial',
+    dashboard_role: data.dashboard_role as 'admin' | 'national' | 'provincial' | 'marketing',
     province_id: data.province_id,
     province_name: (data.provinces as unknown as { name: string } | null)?.name ?? null,
   }
@@ -50,7 +50,7 @@ export async function getBeheerders(): Promise<Beheerder[]> {
     id: p.id,
     phone: p.phone,
     name: p.name,
-    dashboard_role: p.dashboard_role as 'admin' | 'national' | 'provincial',
+    dashboard_role: p.dashboard_role as 'admin' | 'national' | 'provincial' | 'marketing',
     province_id: p.province_id,
     province_name: (p.provinces as unknown as { name: string } | null)?.name ?? null,
   }))
@@ -59,7 +59,7 @@ export async function getBeheerders(): Promise<Beheerder[]> {
 export async function addBeheerder(
   phone: string,
   name: string,
-  role: 'admin' | 'national' | 'provincial',
+  role: 'admin' | 'national' | 'provincial' | 'marketing',
   province_id?: string
 ) {
   const normalized = normalizePhone(phone)
@@ -94,7 +94,7 @@ export async function addBeheerder(
 
 export async function updateBeheerder(
   id: string,
-  role: 'admin' | 'national' | 'provincial',
+  role: 'admin' | 'national' | 'provincial' | 'marketing',
   province_id?: string | null
 ) {
   const { error } = await supabaseAdmin

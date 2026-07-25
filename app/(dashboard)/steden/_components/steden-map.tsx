@@ -24,7 +24,7 @@ function cirkelPolygon(lat: number, lng: number, radiusKm: number, punten = 64):
   return ring
 }
 
-function buildCirkelsGeoJSON(steden: Stad[]): GeoJSON.FeatureCollection {
+function buildCirkelsGeoJSON(steden: Stad[]): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
     features: steden.map(s => ({
@@ -35,7 +35,7 @@ function buildCirkelsGeoJSON(steden: Stad[]): GeoJSON.FeatureCollection {
   }
 }
 
-function buildPuntenGeoJSON(steden: Stad[]): GeoJSON.FeatureCollection {
+function buildPuntenGeoJSON(steden: Stad[]): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
     features: steden.map(s => ({
@@ -62,8 +62,11 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
   const map = useRef<mapboxgl.Map | null>(null)
   const stedenRef = useRef<Stad[]>(steden)
   const onSelectRef = useRef(onSelect)
-  stedenRef.current = steden
-  onSelectRef.current = onSelect
+
+  useEffect(() => {
+    stedenRef.current = steden
+    onSelectRef.current = onSelect
+  }, [steden, onSelect])
 
   useEffect(() => {
     if (map.current || !mapContainer.current) return
@@ -165,8 +168,6 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
 }
 
 // GeoJSON type declaraties
-declare namespace GeoJSON {
-  interface FeatureCollection { type: 'FeatureCollection'; features: Feature[] }
-  interface Feature<G = Geometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = { type: 'Point'; coordinates: number[] } | { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeatureCollection { type: 'FeatureCollection'; features: GeoJsonFeature[] }
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
+type GeoJsonGeometry = { type: 'Point'; coordinates: number[] } | { type: 'Polygon'; coordinates: number[][][] }

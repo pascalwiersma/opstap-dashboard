@@ -52,9 +52,9 @@ function buildRegionsGeoJSON(events: CityEvent[], excludeId?: string) {
   }
 }
 
-type GeoFeature = GeoJSON.Feature<GeoJSON.Geometry>
+type GeoFeature = GeoJsonFeature<GeoJsonGeometry>
 
-function buildDrawingGeoJSON(points: [number, number][]): GeoJSON.FeatureCollection<GeoJSON.Geometry> {
+function buildDrawingGeoJSON(points: [number, number][]): GeoJsonFeatureCollection<GeoJsonGeometry> {
   if (points.length === 0) {
     return { type: 'FeatureCollection', features: [] }
   }
@@ -105,10 +105,12 @@ export function EventMap({ initialEvents }: { initialEvents: CityEvent[] }) {
   const drawingPointsRef = useRef<[number, number][]>([])
   const panelRef = useRef<PanelState>(null)
 
-  addModeRef.current = addMode
-  drawingPointsRef.current = drawingPoints
-  eventsRef.current = events
-  panelRef.current = panel
+  useEffect(() => {
+    addModeRef.current = addMode
+    drawingPointsRef.current = drawingPoints
+    eventsRef.current = events
+    panelRef.current = panel
+  }, [addMode, drawingPoints, events, panel])
 
   const updatePointsSource = useCallback((list: CityEvent[], excludeId?: string) => {
     const src = map.current?.getSource('city-events-points') as mapboxgl.GeoJSONSource | undefined
@@ -142,6 +144,17 @@ export function EventMap({ initialEvents }: { initialEvents: CityEvent[] }) {
     updateDrawingSource([])
     if (map.current) map.current.getCanvas().style.cursor = ''
   }, [updateDrawingSource])
+
+  function makeDragEl(): HTMLDivElement {
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width: 22px; height: 22px; border-radius: 50%;
+      background: ${EVENT_COLOR}; border: 3px solid white;
+      box-shadow: 0 0 0 2px ${EVENT_COLOR}55, 0 3px 10px rgba(0,0,0,0.5);
+      cursor: grab;
+    `
+    return el
+  }
 
   // Init map
   useEffect(() => {
@@ -320,17 +333,6 @@ export function EventMap({ initialEvents }: { initialEvents: CityEvent[] }) {
     map.current.getCanvas().style.cursor =
       addMode === 'point' || addMode === 'region' ? 'crosshair' : ''
   }, [addMode])
-
-  function makeDragEl(): HTMLDivElement {
-    const el = document.createElement('div')
-    el.style.cssText = `
-      width: 22px; height: 22px; border-radius: 50%;
-      background: ${EVENT_COLOR}; border: 3px solid white;
-      box-shadow: 0 0 0 2px ${EVENT_COLOR}55, 0 3px 10px rgba(0,0,0,0.5);
-      cursor: grab;
-    `
-    return el
-  }
 
   function getDragLatLng(): { lat: number; lng: number } | null {
     if (!dragMarker.current) return null
@@ -511,10 +513,8 @@ export function EventMap({ initialEvents }: { initialEvents: CityEvent[] }) {
   )
 }
 
-declare namespace GeoJSON {
-  interface FeatureCollection<G = Geometry> { type: 'FeatureCollection'; features: Feature<G>[] }
-  interface Feature<G = Geometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = { type: 'Point'; coordinates: number[] }
-    | { type: 'LineString'; coordinates: number[][] }
-    | { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeatureCollection<G = GeoJsonGeometry> { type: 'FeatureCollection'; features: GeoJsonFeature<G>[] }
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
+type GeoJsonGeometry = { type: 'Point'; coordinates: number[] }
+  | { type: 'LineString'; coordinates: number[][] }
+  | { type: 'Polygon'; coordinates: number[][][] }

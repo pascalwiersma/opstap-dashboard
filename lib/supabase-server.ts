@@ -40,7 +40,7 @@ export type CurrentUser = {
   id: string
   phone: string
   name: string | null
-  role: 'admin' | 'national' | 'provincial'
+  role: 'admin' | 'national' | 'provincial' | 'marketing'
   province_id: string | null
   province_name: string | null
 }
@@ -73,7 +73,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: user.id,
     phone: user.phone ?? '',
     name: profile.name,
-    role: profile.dashboard_role as 'admin' | 'national' | 'provincial',
+    role: profile.dashboard_role as 'admin' | 'national' | 'provincial' | 'marketing',
     province_id: profile.province_id,
     province_name,
   }

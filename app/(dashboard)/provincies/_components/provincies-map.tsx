@@ -31,7 +31,9 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
   const [actiefBezig, setActiefBezig] = useState(false)
   const [tekenModus, setTekenModus] = useState(false)
 
-  provincesRef.current = provinces
+  useEffect(() => {
+    provincesRef.current = provinces
+  }, [provinces])
 
   const tekenProvincies = useCallback((list: Province[], uitgeslotenId?: string) => {
     if (!draw.current) return
@@ -75,7 +77,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
     draw.current = d
 
-    m.on('draw.create', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.create', (e: { features: GeoJsonFeature[] }) => {
       const feature = e.features[0]
       if (!feature || feature.geometry.type !== 'Polygon') return
       setPanel({ mode: 'create', featureId: feature.id as string })
@@ -83,7 +85,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
       setTekenModus(false)
     })
 
-    m.on('draw.selectionchange', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.selectionchange', (e: { features: GeoJsonFeature[] }) => {
       if (e.features.length === 0) return
       const feature = e.features[0]
       if (!feature) return
@@ -260,9 +262,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
   )
 }
 
-declare namespace GeoJSON {
-  interface Feature<G = Geometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = Point | Polygon
-  interface Point { type: 'Point'; coordinates: number[] }
-  interface Polygon { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
+type GeoJsonGeometry = GeoJsonPoint | GeoJsonPolygon
+interface GeoJsonPoint { type: 'Point'; coordinates: number[] }
+interface GeoJsonPolygon { type: 'Polygon'; coordinates: number[][][] }
