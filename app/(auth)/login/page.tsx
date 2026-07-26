@@ -1,8 +1,8 @@
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
 function normalizePhone(input: string): string | null {
   const cleaned = input.replace(/[\s\-]/g, '')
@@ -126,7 +126,6 @@ function LoginForm() {
             <img src="/logo.png" alt="OpStap" className="w-11 h-11 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-white">OpStap Dashboard</h1>
-          <p className="text-gray-400 mt-1 text-sm">Beheer omgeving — alleen voor admins</p>
         </div>
 
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8">
