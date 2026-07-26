@@ -1,4 +1,4 @@
-import type { FunnelStep } from '@/app/actions/marketing'
+import type { FunnelStep } from '@/lib/marketing-calculations'
 
 export function Funnel({ steps }: { steps: FunnelStep[] }) {
   const maxActors = Math.max(1, ...steps.map(s => s.actors))

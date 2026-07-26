@@ -2,7 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import { type MarketingPeriod, PERIOD_DAYS, periodSinceIso } from '@/lib/marketing-period'
-import { computeFunnelSteps, computeActivationRate, type FunnelStep, type EventActorRow } from '@/lib/marketing-calculations'
+import { computeFunnelSteps, computeActivationRate, type FunnelStep, type EventActorRow, type Kpi } from '@/lib/marketing-calculations'
 
 // Alle marketingevents die de RN-app logt via lib/analytics.ts (trackEvent).
 // store_page_view ontbreekt bewust: dat gebeurt op de App Store/Play Store zelf,
@@ -49,8 +49,6 @@ function toChartData(counts: Record<string, number>) {
     return { date: d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }), count }
   })
 }
-
-export type { FunnelStep }
 
 export async function getMarketingFunnel(period: MarketingPeriod = 'all'): Promise<FunnelStep[]> {
   let query = supabaseAdmin
@@ -182,14 +180,6 @@ export async function getWeeklyActivatedUsers(weeks = 12) {
 }
 
 // ── KPI's met doelwaarden uit het marketingplan ──────────────────────────────
-
-export type Kpi = {
-  id: string
-  label: string
-  description: string
-  value: number
-  target: number
-}
 
 // % gebruikers bij wie targetEvent voor het eerst optreedt binnen `windowDays`
 // ná hun eerste referenceEvent — een echte per-user tijdsvergelijking, dus los

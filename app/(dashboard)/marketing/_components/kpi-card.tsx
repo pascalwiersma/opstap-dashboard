@@ -1,4 +1,4 @@
-import type { Kpi } from '@/app/actions/marketing'
+import type { Kpi } from '@/lib/marketing-calculations'
 
 export function KpiCard({ label, description, value, target }: Kpi) {
   const achieved = value >= target
