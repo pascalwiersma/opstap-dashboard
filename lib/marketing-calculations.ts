@@ -18,6 +18,14 @@ export type FunnelStep = {
   conversionFromPrevious: number
 }
 
+export type Kpi = {
+  id: string
+  label: string
+  description: string
+  value: number
+  target: number
+}
+
 export function computeFunnelSteps(
   rows: EventActorRow[],
   events: readonly string[],
