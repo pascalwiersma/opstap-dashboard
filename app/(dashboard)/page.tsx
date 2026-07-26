@@ -79,6 +79,7 @@ async function VertegenwoordigerDashboard({ province_id, province_name }: { prov
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  if (user.role === 'marketing') redirect('/marketing')
 
   const isAdmin = user.role === 'admin'
   const isNational = user.role === 'national'

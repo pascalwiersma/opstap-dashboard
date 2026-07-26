@@ -6,7 +6,7 @@ import { Bug } from 'lucide-react'
 
 export default async function BugsPage() {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial') redirect('/')
+  if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
 
   const bugs = await getBugReports()
   const aantalNieuw = bugs.filter(b => b.status === 'nieuw').length

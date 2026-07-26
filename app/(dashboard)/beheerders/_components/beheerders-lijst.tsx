@@ -7,11 +7,12 @@ import { removeBeheerder } from '@/app/actions/beheerders'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-const ROL_LABEL: Record<string, string> = { admin: 'Admin', national: 'Vertegenwoordiger', provincial: 'Vertegenwoordiger' }
+const ROL_LABEL: Record<string, string> = { admin: 'Admin', national: 'Vertegenwoordiger', provincial: 'Vertegenwoordiger', marketing: 'Marketing' }
 const ROL_KLEUR: Record<string, string> = {
   admin: 'bg-opstap-purple-600/20 text-opstap-purple-300 border-opstap-purple-600/30',
   national: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30',
   provincial: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30',
+  marketing: 'bg-pink-600/20 text-pink-300 border-pink-600/30',
 }
 
 export function BeheerdersList({ initialBeheerders }: { initialBeheerders: Beheerder[] }) {

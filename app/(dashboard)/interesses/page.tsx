@@ -20,7 +20,7 @@ export default async function InteressesPage() {
         <h1 className="text-2xl font-bold text-white">Interesses</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">
-        Interesse-tags ("wat vind je leuk") beheren, ingedeeld in categorieën — direct
+        Interesse-tags (&quot;wat vind je leuk&quot;) beheren, ingedeeld in categorieën — direct
         zichtbaar in de app zonder release
       </p>
       <InteressesLijst initialCategorieen={categorieen} initialTags={tags} />

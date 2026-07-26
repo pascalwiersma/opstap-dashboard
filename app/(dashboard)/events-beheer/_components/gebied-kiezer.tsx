@@ -15,7 +15,7 @@ function centroid(pts: Punt[]): { lat: number; lng: number } {
   return { lat, lng }
 }
 
-function buildPolygonGeoJSON(pts: Punt[]): GeoJSON.FeatureCollection {
+function buildPolygonGeoJSON(pts: Punt[]): GeoJsonFeatureCollection {
   if (pts.length < 3) return { type: 'FeatureCollection', features: [] }
   return {
     type: 'FeatureCollection',
@@ -27,7 +27,7 @@ function buildPolygonGeoJSON(pts: Punt[]): GeoJSON.FeatureCollection {
   }
 }
 
-function buildLijnGeoJSON(pts: Punt[], voltooid: boolean): GeoJSON.FeatureCollection {
+function buildLijnGeoJSON(pts: Punt[], voltooid: boolean): GeoJsonFeatureCollection {
   if (pts.length < 2) return { type: 'FeatureCollection', features: [] }
   const coords = voltooid ? [...pts, pts[0]] : pts
   return {
@@ -40,7 +40,7 @@ function buildLijnGeoJSON(pts: Punt[], voltooid: boolean): GeoJSON.FeatureCollec
   }
 }
 
-function buildPuntenGeoJSON(pts: Punt[]): GeoJSON.FeatureCollection {
+function buildPuntenGeoJSON(pts: Punt[]): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
     features: pts.map(p => ({
@@ -213,11 +213,9 @@ export function GebiedKiezer({ cityCenter, onChange }: Props) {
   )
 }
 
-declare namespace GeoJSON {
-  interface FeatureCollection { type: 'FeatureCollection'; features: Feature[] }
-  interface Feature { type: 'Feature'; geometry: Geometry; properties: Record<string, unknown> | null }
-  type Geometry =
-    | { type: 'Point'; coordinates: number[] }
-    | { type: 'LineString'; coordinates: number[][] }
-    | { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeatureCollection { type: 'FeatureCollection'; features: GeoJsonFeature[] }
+interface GeoJsonFeature { type: 'Feature'; geometry: GeoJsonGeometry; properties: Record<string, unknown> | null }
+type GeoJsonGeometry =
+  | { type: 'Point'; coordinates: number[] }
+  | { type: 'LineString'; coordinates: number[][] }
+  | { type: 'Polygon'; coordinates: number[][][] }

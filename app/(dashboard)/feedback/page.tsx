@@ -6,7 +6,7 @@ import { MessageSquare } from 'lucide-react'
 
 export default async function FeedbackPage() {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial') redirect('/')
+  if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
 
   const feedback = await getFeedback()
   const aantalNieuw = feedback.filter(f => f.status === 'nieuw').length
