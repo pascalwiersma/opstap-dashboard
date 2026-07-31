@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import type { Stad } from '@/app/actions/steden'
+import type { Uitgaansgebied } from '@/app/actions/uitgaansgebieden'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
@@ -24,49 +24,49 @@ function cirkelPolygon(lat: number, lng: number, radiusKm: number, punten = 64):
   return ring
 }
 
-function buildCirkelsGeoJSON(steden: Stad[]): GeoJsonFeatureCollection {
+function buildCirkelsGeoJSON(gebieden: Uitgaansgebied[]): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: steden.map(s => ({
+    features: gebieden.map(g => ({
       type: 'Feature' as const,
-      geometry: { type: 'Polygon' as const, coordinates: [cirkelPolygon(Number(s.lat), Number(s.lng), Number(s.radius_km))] },
-      properties: { id: s.id, actief: s.actief },
+      geometry: { type: 'Polygon' as const, coordinates: [cirkelPolygon(Number(g.centrum_lat), Number(g.centrum_lng), Number(g.radius_km))] },
+      properties: { id: g.id, actief: g.actief },
     })),
   }
 }
 
-function buildPuntenGeoJSON(steden: Stad[]): GeoJsonFeatureCollection {
+function buildPuntenGeoJSON(gebieden: Uitgaansgebied[]): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: steden.map(s => ({
+    features: gebieden.map(g => ({
       type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [Number(s.lng), Number(s.lat)] },
-      properties: { id: s.id, naam: s.naam, radius_km: s.radius_km, actief: s.actief },
+      geometry: { type: 'Point' as const, coordinates: [Number(g.centrum_lng), Number(g.centrum_lat)] },
+      properties: { id: g.id, naam: g.naam, radius_km: g.radius_km, actief: g.actief },
     })),
   }
 }
 
-function boundsVanSteden(steden: Stad[]): mapboxgl.LngLatBounds | null {
-  if (steden.length === 0) return null
+function boundsVanGebieden(gebieden: Uitgaansgebied[]): mapboxgl.LngLatBounds | null {
+  if (gebieden.length === 0) return null
   const bounds = new mapboxgl.LngLatBounds()
-  for (const s of steden) {
-    for (const [lng, lat] of cirkelPolygon(Number(s.lat), Number(s.lng), Number(s.radius_km), 16)) {
+  for (const g of gebieden) {
+    for (const [lng, lat] of cirkelPolygon(Number(g.centrum_lat), Number(g.centrum_lng), Number(g.radius_km), 16)) {
       bounds.extend([lng, lat])
     }
   }
   return bounds
 }
 
-export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (stad: Stad) => void }) {
+export function UitgaansgebiedenMap({ gebieden, onSelect }: { gebieden: Uitgaansgebied[]; onSelect: (gebied: Uitgaansgebied) => void }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
-  const stedenRef = useRef<Stad[]>(steden)
+  const gebiedenRef = useRef<Uitgaansgebied[]>(gebieden)
   const onSelectRef = useRef(onSelect)
 
   useEffect(() => {
-    stedenRef.current = steden
+    gebiedenRef.current = gebieden
     onSelectRef.current = onSelect
-  }, [steden, onSelect])
+  }, [gebieden, onSelect])
 
   useEffect(() => {
     if (map.current || !mapContainer.current) return
@@ -82,31 +82,31 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
 
     m.on('load', () => {
-      m.addSource('steden-cirkels', { type: 'geojson', data: buildCirkelsGeoJSON(stedenRef.current) })
-      m.addSource('steden-punten', { type: 'geojson', data: buildPuntenGeoJSON(stedenRef.current) })
+      m.addSource('gebieden-cirkels', { type: 'geojson', data: buildCirkelsGeoJSON(gebiedenRef.current) })
+      m.addSource('gebieden-punten', { type: 'geojson', data: buildPuntenGeoJSON(gebiedenRef.current) })
 
       m.addLayer({
-        id: 'steden-cirkels-fill',
+        id: 'gebieden-cirkels-fill',
         type: 'fill',
-        source: 'steden-cirkels',
+        source: 'gebieden-cirkels',
         paint: {
           'fill-color': ['case', ['get', 'actief'], '#7c3aed', '#6b7280'],
           'fill-opacity': 0.15,
         },
       })
       m.addLayer({
-        id: 'steden-cirkels-lijn',
+        id: 'gebieden-cirkels-lijn',
         type: 'line',
-        source: 'steden-cirkels',
+        source: 'gebieden-cirkels',
         paint: {
           'line-color': ['case', ['get', 'actief'], '#a78bfa', '#9ca3af'],
           'line-width': 2,
         },
       })
       m.addLayer({
-        id: 'steden-punten-pin',
+        id: 'gebieden-punten-pin',
         type: 'circle',
-        source: 'steden-punten',
+        source: 'gebieden-punten',
         paint: {
           'circle-radius': 6,
           'circle-color': ['case', ['get', 'actief'], '#7c3aed', '#6b7280'],
@@ -115,9 +115,9 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
         },
       })
       m.addLayer({
-        id: 'steden-punten-label',
+        id: 'gebieden-punten-label',
         type: 'symbol',
-        source: 'steden-punten',
+        source: 'gebieden-punten',
         layout: {
           'text-field': ['concat', ['get', 'naam'], '  (', ['get', 'radius_km'], ' km)'],
           'text-size': 12,
@@ -131,17 +131,17 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
         },
       })
 
-      const bounds = boundsVanSteden(stedenRef.current)
+      const bounds = boundsVanGebieden(gebiedenRef.current)
       if (bounds) m.fitBounds(bounds, { padding: 60, maxZoom: 11, duration: 0 })
 
-      const klikbareLagen = ['steden-cirkels-fill', 'steden-punten-pin']
+      const klikbareLagen = ['gebieden-cirkels-fill', 'gebieden-punten-pin']
 
       m.on('click', (e) => {
         const features = m.queryRenderedFeatures(e.point, { layers: klikbareLagen })
         if (features.length === 0) return
         const id = features[0].properties?.id as string
-        const stad = stedenRef.current.find(s => s.id === id)
-        if (stad) onSelectRef.current(stad)
+        const gebied = gebiedenRef.current.find(g => g.id === id)
+        if (gebied) onSelectRef.current(gebied)
       })
 
       m.on('mouseenter', klikbareLagen, () => { m.getCanvas().style.cursor = 'pointer' })
@@ -154,15 +154,15 @@ export function StedenMap({ steden, onSelect }: { steden: Stad[]; onSelect: (sta
     }
   }, [])
 
-  // Sync data wanneer steden wijzigen (na toevoegen/bewerken/verwijderen)
+  // Sync data wanneer gebieden wijzigen (na toevoegen/bewerken/verwijderen)
   useEffect(() => {
     const m = map.current
     if (!m || !m.isStyleLoaded()) return
-    const cirkelBron = m.getSource('steden-cirkels') as mapboxgl.GeoJSONSource | undefined
-    const puntenBron = m.getSource('steden-punten') as mapboxgl.GeoJSONSource | undefined
-    cirkelBron?.setData(buildCirkelsGeoJSON(steden))
-    puntenBron?.setData(buildPuntenGeoJSON(steden))
-  }, [steden])
+    const cirkelBron = m.getSource('gebieden-cirkels') as mapboxgl.GeoJSONSource | undefined
+    const puntenBron = m.getSource('gebieden-punten') as mapboxgl.GeoJSONSource | undefined
+    cirkelBron?.setData(buildCirkelsGeoJSON(gebieden))
+    puntenBron?.setData(buildPuntenGeoJSON(gebieden))
+  }, [gebieden])
 
   return <div ref={mapContainer} className="w-full h-[420px] rounded-xl overflow-hidden border border-gray-800" />
 }

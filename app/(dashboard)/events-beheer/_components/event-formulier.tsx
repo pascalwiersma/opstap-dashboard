@@ -8,7 +8,7 @@ import type { Event, EventInput } from '@/app/actions/events'
 import { createEvent, updateEvent, uploadEventPhoto } from '@/app/actions/events'
 import { searchVenues } from '@/app/actions/venues'
 import type { VenueZoekResultaat } from '@/app/actions/venues'
-import type { Stad } from '@/app/actions/steden'
+import type { Uitgaansgebied } from '@/app/actions/uitgaansgebieden'
 
 const VenueKaart = dynamic(
   () => import('./venue-kaart').then(m => m.VenueKaart),
@@ -29,12 +29,12 @@ const STATUS_OPTIES = [
 type LocatieModus = 'venue' | 'gebied'
 
 type Props = {
-  steden: Stad[]
+  uitgaansgebieden: Uitgaansgebied[]
   currentUserId: string
   event?: Event
 }
 
-export function EventFormulier({ steden, currentUserId, event }: Props) {
+export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [fout, setFout] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
   const [fotoPreview, setFotoPreview] = useState<string | null>(event?.photo_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const geselecteerdeStad = steden.find(s => s.naam === stad)
+  const geselecteerdGebied = uitgaansgebieden.find(g => g.naam === stad)
 
   function wisselLocatieModus(modus: LocatieModus) {
     setLocatieModus(modus)
@@ -258,7 +258,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
               className={invoerKlasse}
             >
               <option value="">— Selecteer stad —</option>
-              {steden.map(s => <option key={s.id} value={s.naam}>{s.naam}</option>)}
+              {uitgaansgebieden.map(g => <option key={g.id} value={g.naam}>{g.naam}</option>)}
             </select>
           </div>
 
@@ -344,7 +344,7 @@ export function EventFormulier({ steden, currentUserId, event }: Props) {
                 </p>
               )}
               <GebiedKiezer
-                cityCenter={geselecteerdeStad ? { lat: geselecteerdeStad.lat, lng: geselecteerdeStad.lng } : undefined}
+                cityCenter={geselecteerdGebied ? { lat: geselecteerdGebied.centrum_lat, lng: geselecteerdGebied.centrum_lng } : undefined}
                 onChange={setGebiedLocatie}
               />
             </div>

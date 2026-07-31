@@ -11,60 +11,60 @@ function adminClient() {
   )
 }
 
-export type Stad = {
+export type Uitgaansgebied = {
   id: string
   naam: string
   provincie: string
-  lat: number
-  lng: number
+  centrum_lat: number
+  centrum_lng: number
   radius_km: number
   actief: boolean
   created_at: string
 }
 
-export type StadInput = {
+export type UitgaansgebiedInput = {
   naam: string
   provincie: string
-  lat: number
-  lng: number
+  centrum_lat: number
+  centrum_lng: number
   radius_km: number
   actief: boolean
 }
 
-export async function getSteden(): Promise<Stad[]> {
+export async function getUitgaansgebieden(): Promise<Uitgaansgebied[]> {
   const { data, error } = await adminClient()
-    .from('supported_cities')
-    .select('id, naam, provincie, lat, lng, radius_km, actief, created_at')
+    .from('uitgaansgebieden')
+    .select('id, naam, provincie, centrum_lat, centrum_lng, radius_km, actief, created_at')
     .order('naam')
   if (error) throw new Error(error.message)
-  return data as Stad[]
+  return data as Uitgaansgebied[]
 }
 
-export async function createStad(input: StadInput): Promise<Stad> {
+export async function createUitgaansgebied(input: UitgaansgebiedInput): Promise<Uitgaansgebied> {
   const { data, error } = await adminClient()
-    .from('supported_cities')
+    .from('uitgaansgebieden')
     .insert(input)
-    .select('id, naam, provincie, lat, lng, radius_km, actief, created_at')
+    .select('id, naam, provincie, centrum_lat, centrum_lng, radius_km, actief, created_at')
     .single()
   if (error) throw new Error(error.message)
-  revalidatePath('/steden')
-  return data as Stad
+  revalidatePath('/uitgaansgebieden')
+  return data as Uitgaansgebied
 }
 
-export async function updateStad(id: string, input: Partial<StadInput>) {
+export async function updateUitgaansgebied(id: string, input: Partial<UitgaansgebiedInput>) {
   const { error } = await adminClient()
-    .from('supported_cities')
+    .from('uitgaansgebieden')
     .update(input)
     .eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/steden')
+  revalidatePath('/uitgaansgebieden')
 }
 
-export async function deleteStad(id: string) {
+export async function deleteUitgaansgebied(id: string) {
   const { error } = await adminClient()
-    .from('supported_cities')
+    .from('uitgaansgebieden')
     .delete()
     .eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/steden')
+  revalidatePath('/uitgaansgebieden')
 }

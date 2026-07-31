@@ -46,7 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/bugs', label: 'Bugs', icon: Bug, roles: ['admin', 'national'] },
     { href: '/feedback', label: 'Feedback', icon: MessageSquare, roles: ['admin', 'national'] },
     { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
-    { href: '/steden', label: 'Steden', icon: MapPin, roles: ['admin'] },
+    { href: '/uitgaansgebieden', label: 'Uitgaansgebieden', icon: MapPin, roles: ['admin'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
     { href: '/interesses', label: 'Interesses', icon: Tags, roles: ['admin'] },
     { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
