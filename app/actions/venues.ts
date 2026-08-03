@@ -53,15 +53,15 @@ export async function searchVenues(query: string, cityNaam?: string): Promise<Ve
   let lngMin: number | undefined, lngMax: number | undefined
 
   if (cityNaam) {
-    const { data: stad } = await admin
-      .from('supported_cities')
-      .select('lat, lng, radius_km')
+    const { data: gebied } = await admin
+      .from('uitgaansgebieden')
+      .select('centrum_lat, centrum_lng, radius_km')
       .eq('naam', cityNaam)
       .single()
-    if (stad) {
-      const degr = (stad.radius_km + 5) / 111
-      latMin = stad.lat - degr; latMax = stad.lat + degr
-      lngMin = stad.lng - degr; lngMax = stad.lng + degr
+    if (gebied) {
+      const degr = (gebied.radius_km + 5) / 111
+      latMin = gebied.centrum_lat - degr; latMax = gebied.centrum_lat + degr
+      lngMin = gebied.centrum_lng - degr; lngMax = gebied.centrum_lng + degr
     }
   }
 

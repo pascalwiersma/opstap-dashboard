@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { X, Trash2, Save, MapPin, Hexagon, Calendar, ImagePlus, Loader2 } from 'lucide-react'
-import type { CityEvent, CityEventInput, CityEventType } from '@/app/actions/city-events'
+import type { CityEvent, CityEventInput } from '@/app/actions/city-events'
 import { uploadEventPhoto, deleteEventPhoto } from '@/app/actions/city-events'
 
 type Mode = 'create' | 'edit'
@@ -18,22 +18,15 @@ type Props = {
   onClose: () => void
 }
 
-const TYPE_OPTIONS: { value: CityEventType; label: string }[] = [
-  { value: 'kermis', label: 'Kermis' },
-  { value: 'festival', label: 'Festival' },
-  { value: 'markt', label: 'Markt' },
-  { value: 'concert', label: 'Concert' },
-  { value: 'sport', label: 'Sport' },
-  { value: 'overig', label: 'Overig' },
-]
+const OPSTAP_ORANGE = '#ff6b35'
 
 const COLOR_SWATCHES = [
+  OPSTAP_ORANGE, // opstap
   '#0ea5e9', // sky
   '#f59e0b', // amber
   '#10b981', // emerald
   '#8b5cf6', // violet
   '#f43f5e', // rose
-  '#f97316', // orange
   '#14b8a6', // teal
   '#6366f1', // indigo
   '#ec4899', // pink
@@ -48,13 +41,13 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
   const locationType = event?.location_type ?? (polygon ? 'region' : 'point')
 
   const [name, setName] = useState(event?.name ?? '')
-  const [eventType, setEventType] = useState<CityEventType | null>(event?.event_type ?? null)
   const [description, setDescription] = useState(event?.description ?? '')
   const [startDate, setStartDate] = useState(event?.start_date ?? today())
   const [endDate, setEndDate] = useState(event?.end_date ?? today())
-  const [color, setColor] = useState(event?.color ?? '#0ea5e9')
+  const [color, setColor] = useState(event?.color ?? OPSTAP_ORANGE)
   const [photoUrl, setPhotoUrl] = useState<string | null>(event?.photo_url ?? null)
   const [active, setActive] = useState(event?.active ?? true)
+  const [radiusKm, setRadiusKm] = useState<number | ''>(event?.radius_km ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -73,11 +66,12 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
       await onSave({
         name: name.trim(),
         description: description.trim() || null,
-        event_type: eventType,
+        event_type: null,
         location_type: locationType,
         lat: locationType === 'point' ? (lat ?? null) : null,
         lng: locationType === 'point' ? (lng ?? null) : null,
         polygon: locationType === 'region' ? (poly ?? null) : null,
+        radius_km: locationType === 'point' && radiusKm !== '' ? Number(radiusKm) : null,
         start_date: startDate,
         end_date: endDate,
         color,
@@ -157,7 +151,22 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
           )}
         </div>
         {locationType === 'point' && (
-          <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
+          <>
+            <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Straal (km)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={radiusKm}
+                onChange={e => setRadiusKm(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="Optioneel"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 transition-colors"
+              />
+              <p className="text-xs text-gray-600 mt-1">Toont een cirkel op de kaart naast de pin. Heeft geen invloed op wie kan inchecken.</p>
+            </div>
+          </>
         )}
 
         {/* Naam */}
@@ -169,27 +178,6 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
             placeholder="Kermis Groningen"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 transition-colors"
           />
-        </div>
-
-        {/* Type */}
-        <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
-          <div className="grid grid-cols-3 gap-2">
-            {TYPE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setEventType(eventType === opt.value ? null : opt.value)}
-                className={`py-2 rounded-lg text-xs font-medium transition-colors border ${
-                  eventType === opt.value
-                    ? 'text-white border-transparent'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'
-                }`}
-                style={eventType === opt.value ? { backgroundColor: color, borderColor: color } : {}}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Kleur */}

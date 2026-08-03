@@ -46,6 +46,33 @@ Lanceringsdatum app: 1 augustus 2026.
 - Geen hardcoded UUIDs of API keys in de code
 - Server-side Supabase-calls via `app/lib`, admin-only writes via `app/actions`
 
+## Database-migraties
+- Schema-wijzigingen ALTIJD via een migratiebestand in `supabase/migrations/` in de
+  `opstap` repo, toegepast met `apply_migration` (Supabase MCP) of `supabase db push`
+  — NOOIT via `execute_sql` of de dashboard SQL-editor. `execute_sql` alleen voor
+  read-only checks/queries.
+- Kolommen/tabellen droppen of hernoemen: nooit in één stap. Eerst nieuwe kolom
+  toevoegen + vullen, code laten overschakelen, pas in een latere migratie de oude
+  kolom droppen.
+- Vóór een risicovolle migratie op productie (drop/rename/constraint-wijziging):
+  vraag expliciet om bevestiging en wijs op een backup/point-in-time-recovery-check.
+- Uitgebreide uitleg (waarom, omgevingen, backfill-aanpak): zie `WORKFLOW.md` in de
+  `opstap` repo. Korte afvinklijst per release: zie `RELEASE-CHECKLIST.md` in de
+  `opstap` repo.
+
+## Branch- en releaseflow
+- Feature-branches → PR naar `develop`. CI (typecheck, lint, tests) moet groen zijn
+  vóór merge.
+- `develop` → `main` alleen na handmatige bevestiging door Pascal, nooit automatisch.
+- Na merge naar `main`: migraties op productie toepassen (zie regel hierboven, via de
+  `opstap` repo), dan pas de dashboard-deploy.
+
+## Wat NIET automatisch mag
+- Geen directe schemawijzigingen op productie zonder migratiebestand.
+- Geen merge naar `main` zonder expliciet akkoord.
+- Geen debug-instellingen in gedeelde workflow-bestanden die de PR-branch laten
+  afwijken van `develop` — dat triggert de ingebouwde workflow-validatiebeveiliging.
+
 ## Belangrijke bestanden
 - `app/(dashboard)/steden/` — steden beheer
 - `app/(dashboard)/provincies/` — provincies beheer
