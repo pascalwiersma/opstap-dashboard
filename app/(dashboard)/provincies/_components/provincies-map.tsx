@@ -6,7 +6,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import type { Province } from '@/app/actions/provinces'
-import { createProvince, updateProvince, deleteProvince } from '@/app/actions/provinces'
+import { createProvince, updateProvince, updateProvinceActief, deleteProvince } from '@/app/actions/provinces'
 import { PenLine, Trash2, Check, X } from 'lucide-react'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
@@ -28,9 +28,12 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
   const [panel, setPanel] = useState<PanelState>(null)
   const [naam, setNaam] = useState('')
   const [bezig, setBezig] = useState(false)
+  const [actiefBezig, setActiefBezig] = useState(false)
   const [tekenModus, setTekenModus] = useState(false)
 
-  provincesRef.current = provinces
+  useEffect(() => {
+    provincesRef.current = provinces
+  }, [provinces])
 
   const tekenProvincies = useCallback((list: Province[], uitgeslotenId?: string) => {
     if (!draw.current) return
@@ -74,7 +77,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
     draw.current = d
 
-    m.on('draw.create', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.create', (e: { features: GeoJsonFeature[] }) => {
       const feature = e.features[0]
       if (!feature || feature.geometry.type !== 'Polygon') return
       setPanel({ mode: 'create', featureId: feature.id as string })
@@ -82,7 +85,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
       setTekenModus(false)
     })
 
-    m.on('draw.selectionchange', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.selectionchange', (e: { features: GeoJsonFeature[] }) => {
       if (e.features.length === 0) return
       const feature = e.features[0]
       if (!feature) return
@@ -152,6 +155,19 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
     }
   }
 
+  async function toggleActief() {
+    if (panel?.mode !== 'edit') return
+    const nieuweWaarde = !panel.province.actief
+    setActiefBezig(true)
+    try {
+      await updateProvinceActief(panel.province.id, nieuweWaarde)
+      setProvinces(prev => prev.map(p => p.id === panel.province.id ? { ...p, actief: nieuweWaarde } : p))
+      setPanel(prev => prev?.mode === 'edit' ? { ...prev, province: { ...prev.province, actief: nieuweWaarde } } : prev)
+    } finally {
+      setActiefBezig(false)
+    }
+  }
+
   async function verwijder() {
     if (panel?.mode !== 'edit') return
     setBezig(true)
@@ -203,6 +219,19 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
             placeholder="Naam (bijv. Groningen)"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500"
           />
+          {panel.mode === 'edit' && (
+            <label className="flex items-center gap-3 cursor-pointer w-fit">
+              <div
+                onClick={toggleActief}
+                className={`relative w-10 h-6 rounded-full transition-colors ${panel.province.actief ? 'bg-emerald-600' : 'bg-gray-700'} ${actiefBezig ? 'opacity-50 pointer-events-none' : ''}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${panel.province.actief ? 'translate-x-5' : 'translate-x-1'}`} />
+              </div>
+              <span className="text-sm text-white font-medium">
+                {panel.province.actief ? 'Actief' : 'Nog niet actief'}
+              </span>
+            </label>
+          )}
           <div className="flex gap-2">
             <button
               onClick={slaOp}
@@ -233,9 +262,7 @@ export function ProvinciesMap({ initialProvinces }: { initialProvinces: Province
   )
 }
 
-declare namespace GeoJSON {
-  interface Feature<G = Geometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = Point | Polygon
-  interface Point { type: 'Point'; coordinates: number[] }
-  interface Polygon { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
+type GeoJsonGeometry = GeoJsonPoint | GeoJsonPolygon
+interface GeoJsonPoint { type: 'Point'; coordinates: number[] }
+interface GeoJsonPolygon { type: 'Polygon'; coordinates: number[][][] }

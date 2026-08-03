@@ -139,9 +139,9 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Coördinaten */}
         <div className="flex items-center gap-2 text-xs bg-gray-800 rounded-lg px-3 py-2">
-          <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+          <MapPin className="w-3.5 h-3.5 text-opstap-orange-400 shrink-0" />
           <span className="text-gray-400 tabular-nums">{coordLat.toFixed(6)}, {coordLng.toFixed(6)}</span>
-          {dragPos && <span className="ml-auto text-violet-400 font-medium">Versleept</span>}
+          {dragPos && <span className="ml-auto text-opstap-orange-400 font-medium">Versleept</span>}
         </div>
         <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
 
@@ -152,7 +152,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Café de Goudkust"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors"
           />
         </div>
 
@@ -166,7 +166,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
                 onClick={() => setType(type === opt.value ? null : opt.value)}
                 className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors border ${
                   type === opt.value
-                    ? 'bg-violet-600 border-violet-500 text-white'
+                    ? 'bg-opstap-orange-600 border-opstap-orange-500 text-white'
                     : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'
                 }`}
               >
@@ -184,7 +184,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
             onChange={e => setDescription(e.target.value)}
             rows={3}
             placeholder="Korte beschrijving..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors resize-none"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors resize-none"
           />
         </div>
 
@@ -199,7 +199,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
                   value={hours[day] ?? ''}
                   onChange={e => setHours(h => ({ ...h, [day]: e.target.value }))}
                   placeholder="22:00–04:00 of gesloten"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-opstap-orange-500 transition-colors"
                 />
               </div>
             ))}
@@ -253,7 +253,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           <span className="text-sm text-gray-300">Actief in de app</span>
           <button
             onClick={() => setActive(a => !a)}
-            className={`relative w-11 h-6 rounded-full transition-colors ${active ? 'bg-violet-600' : 'bg-gray-700'}`}
+            className={`relative w-11 h-6 rounded-full transition-colors ${active ? 'bg-opstap-orange-600' : 'bg-gray-700'}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
@@ -279,7 +279,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Opslaan...' : 'Opslaan'}

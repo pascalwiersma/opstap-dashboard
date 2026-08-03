@@ -2,13 +2,25 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { inviteBeheerder } from '@/app/actions/beheerders'
+import { addBeheerder } from '@/app/actions/beheerders'
+import type { Province } from '@/app/actions/provinces'
+import { ChevronDown } from 'lucide-react'
 
-export function NieuwBeheerderForm() {
+type Rol = 'admin' | 'national' | 'provincial' | 'marketing'
+
+const ROL_OPTIES: { value: Rol; label: string; description: string }[] = [
+  { value: 'admin', label: 'Admin', description: 'Volledige toegang tot alles, optioneel ook vertegenwoordiger van een provincie' },
+  { value: 'national', label: 'Vertegenwoordiger (landelijk)', description: 'Landelijk overzicht, geen provincie-scoping' },
+  { value: 'provincial', label: 'Vertegenwoordiger (provincie)', description: 'Toegang beperkt tot de toegewezen provincie' },
+  { value: 'marketing', label: 'Marketing', description: 'Alleen toegang tot de geaggregeerde marketingpagina' },
+]
+
+export function NieuwBeheerderForm({ provinces }: { provinces: Province[] }) {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [naam, setNaam] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [rol, setRol] = useState<Rol>('provincial')
+  const [provinceId, setProvinceId] = useState('')
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState('')
 
@@ -17,7 +29,7 @@ export function NieuwBeheerderForm() {
     setBezig(true)
     setFout('')
     try {
-      await inviteBeheerder(email, naam, isAdmin ? 'admin' : 'provincial')
+      await addBeheerder(phone, naam, rol, provinceId || undefined)
       router.push('/beheerders')
       router.refresh()
     } catch (err) {
@@ -42,46 +54,65 @@ export function NieuwBeheerderForm() {
             value={naam}
             onChange={e => setNaam(e.target.value)}
             placeholder="Jan de Vries"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500 transition-colors"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1.5">E-mailadres</label>
+          <label className="block text-sm text-gray-400 mb-1.5">Telefoonnummer</label>
           <input
             required
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="jan@opstap.nl"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
+            type="tel"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="06 12345678"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500 transition-colors"
           />
         </div>
       </div>
 
       <div>
-        <label className="flex items-center gap-3 cursor-pointer group w-fit">
-          <div
-            onClick={() => setIsAdmin(v => !v)}
-            className={`relative w-10 h-6 rounded-full transition-colors ${isAdmin ? 'bg-violet-600' : 'bg-gray-700'}`}
+        <label className="block text-sm text-gray-400 mb-1.5">Rol</label>
+        <div className="relative max-w-xs">
+          <select
+            value={rol}
+            onChange={e => setRol(e.target.value as Rol)}
+            className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
           >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isAdmin ? 'translate-x-5' : 'translate-x-1'}`} />
-          </div>
-          <div>
-            <span className="text-sm text-white font-medium">Admin</span>
-            <p className="text-xs text-gray-500">
-              {isAdmin ? 'Volledige toegang tot alles' : 'Vertegenwoordiger — provincie wordt apart ingesteld'}
-            </p>
-          </div>
-        </label>
+            {ROL_OPTIES.map(optie => (
+              <option key={optie.value} value={optie.value}>{optie.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+        </div>
+        <p className="text-xs text-gray-500 mt-1.5">
+          {ROL_OPTIES.find(o => o.value === rol)?.description}
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-400 mb-1.5">Provincie</label>
+        <div className="relative max-w-xs">
+          <select
+            value={provinceId}
+            onChange={e => setProvinceId(e.target.value)}
+            className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-opstap-orange-500 transition-colors"
+          >
+            <option value="">Geen provincie toegewezen</option>
+            {provinces.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
           disabled={bezig}
-          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
+          className="px-5 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
         >
-          {bezig ? 'Uitnodiging versturen...' : 'Uitnodiging versturen'}
+          {bezig ? 'Toevoegen...' : 'Beheerder toevoegen'}
         </button>
         <button
           type="button"

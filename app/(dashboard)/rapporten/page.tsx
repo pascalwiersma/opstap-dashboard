@@ -6,7 +6,7 @@ import { Flag } from 'lucide-react'
 
 export default async function RapportenPage() {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial') redirect('/')
+  if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
 
   const rapporten = await getRapporten()
   const aantalNieuw = rapporten.filter(r => r.status === 'nieuw').length

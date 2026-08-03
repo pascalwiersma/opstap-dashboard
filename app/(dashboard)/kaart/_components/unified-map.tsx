@@ -17,7 +17,7 @@ import { ZONE_CATEGORIEEN, zonekleur } from '@/app/lib/zone-utils'
 import { VenuePanel } from '../../venues/_components/venue-panel'
 import { EventPanel } from '../../events/_components/event-panel'
 import { MapPin, CalendarDays, Hexagon, X, Check, PenLine, Trash2, Layers } from 'lucide-react'
-import { pointInPolygon, polygonCentroid } from '@/lib/geo'
+import { pointInPolygon, polygonCentroid, circlePolygon } from '@/lib/geo'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
@@ -27,7 +27,7 @@ const VENUE_COLORS: Record<string, string> = {
   cafe: '#10b981',
   default: '#6b7280',
 }
-const EVENT_COLOR = '#0ea5e9'
+const EVENT_COLOR = '#ff6b35'
 const MEETING_COLOR = '#f97316'
 
 type AddMode = 'venue' | 'event-point' | 'event-region' | null
@@ -100,9 +100,23 @@ function eventRegionsGeoJSON(events: CityEvent[], excludeId?: string) {
   }
 }
 
+/** Berekende cirkel (punt-events met radius_km) — puur kaartweergave, geen eligibility-regel. */
+function eventRadiusGeoJSON(events: CityEvent[], excludeId?: string) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: events
+      .filter(e => e.location_type === 'point' && e.lat != null && e.lng != null && e.radius_km != null && e.id !== excludeId)
+      .map(e => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates: [circlePolygon(Number(e.lat), Number(e.lng), e.radius_km!)] },
+        properties: { id: e.id, color: e.color ?? EVENT_COLOR },
+      })),
+  }
+}
+
 function drawingGeoJSON(pts: [number, number][]) {
   if (pts.length === 0) return { type: 'FeatureCollection' as const, features: [] }
-  const features: GeoJSON.Feature[] = []
+  const features: GeoJsonFeature[] = []
 
   if (pts.length >= 2)
     features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} })
@@ -126,13 +140,11 @@ function drawingGeoJSON(pts: [number, number][]) {
   return { type: 'FeatureCollection' as const, features }
 }
 
-declare namespace GeoJSON {
-  interface Feature { type: 'Feature'; id?: string | number; geometry: Geom; properties: Record<string, unknown> | null }
-  type Geom =
-    | { type: 'Point'; coordinates: number[] }
-    | { type: 'LineString'; coordinates: number[][] }
-    | { type: 'Polygon'; coordinates: number[][][] }
-}
+interface GeoJsonFeature { type: 'Feature'; id?: string | number; geometry: GeoJsonGeom; properties: Record<string, unknown> | null }
+type GeoJsonGeom =
+  | { type: 'Point'; coordinates: number[] }
+  | { type: 'LineString'; coordinates: number[][] }
+  | { type: 'Polygon'; coordinates: number[][][] }
 
 // ---
 
@@ -178,12 +190,14 @@ export function UnifiedMap({
   const eventsRef = useRef(events)
   const areasRef = useRef<MeetingArea[]>(areas)
 
-  panelRef.current = panel
-  addModeRef.current = addMode
-  drawingPtsRef.current = drawingPts
-  venuesRef.current = venues
-  eventsRef.current = events
-  areasRef.current = areas
+  useEffect(() => {
+    panelRef.current = panel
+    addModeRef.current = addMode
+    drawingPtsRef.current = drawingPts
+    venuesRef.current = venues
+    eventsRef.current = events
+    areasRef.current = areas
+  }, [panel, addMode, drawingPts, venues, events, areas])
 
   const updMeetingLabels = useCallback((a: MeetingArea[]) => {
     const src = map.current?.getSource('meeting-labels') as mapboxgl.GeoJSONSource | undefined
@@ -203,6 +217,11 @@ export function UnifiedMap({
   const updEventRegs = useCallback((e: CityEvent[], ex?: string) => {
     const src = map.current?.getSource('event-regions') as mapboxgl.GeoJSONSource | undefined
     src?.setData(eventRegionsGeoJSON(e, ex))
+  }, [])
+
+  const updEventRadius = useCallback((e: CityEvent[], ex?: string) => {
+    const src = map.current?.getSource('event-radius') as mapboxgl.GeoJSONSource | undefined
+    src?.setData(eventRadiusGeoJSON(e, ex))
   }, [])
 
   const updDrawing = useCallback((pts: [number, number][]) => {
@@ -235,13 +254,40 @@ export function UnifiedMap({
     updVenues(venuesRef.current)
     updEventPts(eventsRef.current)
     updEventRegs(eventsRef.current)
-  }, [updVenues, updEventPts, updEventRegs, updDrawing])
+    updEventRadius(eventsRef.current)
+  }, [updVenues, updEventPts, updEventRegs, updEventRadius, updDrawing])
 
   const cancelDraw = useCallback(() => {
     setAddMode(null)
     setDrawingPts([])
     updDrawing([])
   }, [updDrawing])
+
+  const provincePoly = userProvince?.polygon ?? null
+
+  function attachDragListener(marker: mapboxgl.Marker) {
+    marker.on('drag', () => {
+      const { lat, lng } = marker.getLngLat()
+      // Snap terug naar grens als marker buiten provincie gesleept wordt
+      if (provincePoly && !pointInPolygon(lng, lat, provincePoly)) {
+        setBuitenGrens(true)
+        setTimeout(() => setBuitenGrens(false), 2000)
+      }
+      setDraggedPos({ lat, lng })
+    })
+  }
+
+  function makeDragEl(type: string | null, isHexColor = false): HTMLDivElement {
+    const color = isHexColor ? (type ?? EVENT_COLOR) : (VENUE_COLORS[type ?? 'default'] ?? VENUE_COLORS.default)
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width: 22px; height: 22px; border-radius: 50%;
+      background: ${color}; border: 3px solid white;
+      box-shadow: 0 0 0 2px ${color}55, 0 3px 10px rgba(0,0,0,0.5);
+      cursor: grab;
+    `
+    return el
+  }
 
   // Init map
   useEffect(() => {
@@ -310,7 +356,7 @@ export function UnifiedMap({
     draw.current = d
 
     // Meeting area events (no need to wait for load)
-    m.on('draw.create', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.create', (e: { features: GeoJsonFeature[] }) => {
       const feature = e.features[0]
       if (!feature || feature.geometry.type !== 'Polygon') return
       if (userProvince?.polygon) {
@@ -328,7 +374,7 @@ export function UnifiedMap({
       setMeetingTekenModus(false)
     })
 
-    m.on('draw.selectionchange', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.selectionchange', (e: { features: GeoJsonFeature[] }) => {
       if (e.features.length === 0) return
       const feature = e.features[0]
       if (!feature) return
@@ -342,6 +388,7 @@ export function UnifiedMap({
     m.on('load', () => {
       m.addSource('event-regions', { type: 'geojson', data: eventRegionsGeoJSON(eventsRef.current) })
       m.addSource('event-points', { type: 'geojson', data: eventPointsGeoJSON(eventsRef.current) })
+      m.addSource('event-radius', { type: 'geojson', data: eventRadiusGeoJSON(eventsRef.current) })
       m.addSource('venues', { type: 'geojson', data: venueGeoJSON(venuesRef.current) })
       m.addSource('drawing', { type: 'geojson', data: drawingGeoJSON([]) })
       m.addSource('meeting-labels', { type: 'geojson', data: meetingLabelsGeoJSON(areasRef.current) })
@@ -454,6 +501,30 @@ export function UnifiedMap({
           'line-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
           'line-width': 2.5,
           'line-opacity': 0.9,
+        },
+      })
+
+      // Berekende cirkel (punt-event met radius_km) — gestippeld om visueel te
+      // onderscheiden van een handgetekende regio. Passieve achtergrond, niet
+      // klikbaar (zie hoverLayers).
+      m.addLayer({
+        id: 'event-radius-fill',
+        type: 'fill',
+        source: 'event-radius',
+        paint: {
+          'fill-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
+          'fill-opacity': 0.10,
+        },
+      })
+      m.addLayer({
+        id: 'event-radius-outline',
+        type: 'line',
+        source: 'event-radius',
+        paint: {
+          'line-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
+          'line-width': 1.5,
+          'line-opacity': 0.7,
+          'line-dasharray': [4, 2],
         },
       })
 
@@ -612,6 +683,7 @@ export function UnifiedMap({
           if (!ev) return
           dragMarker.current?.remove()
           updEventPts(eventsRef.current, id)
+          updEventRadius(eventsRef.current, id)
           const el = makeDragEl(ev.color ?? EVENT_COLOR, true)
           dragMarker.current = new mapboxgl.Marker({ element: el, draggable: true })
             .setLngLat([Number(ev.lng), Number(ev.lat)]).addTo(m)
@@ -628,7 +700,6 @@ export function UnifiedMap({
           const id = regionHits[0].properties?.id as string
           const ev = eventsRef.current.find(x => x.id === id)
           if (!ev) return
-          updEventRegs(eventsRef.current, id)
           setPanel({ kind: 'edit-event', event: ev })
         }
       })
@@ -641,7 +712,7 @@ export function UnifiedMap({
       m.remove()
       map.current = null
     }
-  }, [updVenues, updEventPts, updEventRegs, updDrawing, tekenGebieden, updMeetingLabels])
+  }, [updVenues, updEventPts, updEventRegs, updEventRadius, updDrawing, tekenGebieden, updMeetingLabels])
 
   // Sync venue/event sources
   useEffect(() => {
@@ -649,8 +720,9 @@ export function UnifiedMap({
     const exEvent = panelRef.current?.kind === 'edit-event' ? panelRef.current.event.id : undefined
     updVenues(venues, exVenue)
     updEventPts(events, exEvent)
-    updEventRegs(events, exEvent)
-  }, [venues, events, updVenues, updEventPts, updEventRegs])
+    updEventRegs(events)
+    updEventRadius(events, exEvent)
+  }, [venues, events, updVenues, updEventPts, updEventRegs, updEventRadius])
 
   // Sync meeting areas — only when panel is closed, to preserve drawn/selected polygons
   useEffect(() => {
@@ -670,31 +742,6 @@ export function UnifiedMap({
   }, [addMode])
 
   const kanAreas = userRole === 'admin' || userRole === 'national'
-  const provincePoly = userProvince?.polygon ?? null
-
-  function attachDragListener(marker: mapboxgl.Marker) {
-    marker.on('drag', () => {
-      const { lat, lng } = marker.getLngLat()
-      // Snap terug naar grens als marker buiten provincie gesleept wordt
-      if (provincePoly && !pointInPolygon(lng, lat, provincePoly)) {
-        setBuitenGrens(true)
-        setTimeout(() => setBuitenGrens(false), 2000)
-      }
-      setDraggedPos({ lat, lng })
-    })
-  }
-
-  function makeDragEl(type: string | null, isHexColor = false): HTMLDivElement {
-    const color = isHexColor ? (type ?? EVENT_COLOR) : (VENUE_COLORS[type ?? 'default'] ?? VENUE_COLORS.default)
-    const el = document.createElement('div')
-    el.style.cssText = `
-      width: 22px; height: 22px; border-radius: 50%;
-      background: ${color}; border: 3px solid white;
-      box-shadow: 0 0 0 2px ${color}55, 0 3px 10px rgba(0,0,0,0.5);
-      cursor: grab;
-    `
-    return el
-  }
 
   function getDragPos(): { lat: number; lng: number } | null {
     if (!dragMarker.current) return null
@@ -817,7 +864,7 @@ export function UnifiedMap({
                 onClick={() => setAddMode(m => m === 'venue' ? null : 'venue')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
                   addMode === 'venue'
-                    ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+                    ? 'bg-opstap-orange-600 text-white ring-2 ring-opstap-orange-400'
                     : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
                 }`}
               >
@@ -962,7 +1009,7 @@ export function UnifiedMap({
             onChange={e => setMeetingNaam(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && slaOpMeeting()}
             placeholder="Naam (bijv. Vismarkt)"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500"
           />
           <div className="flex flex-wrap gap-1.5">
             {ZONE_CATEGORIEEN.map(cat => (

@@ -22,7 +22,7 @@ type PanelState =
   | { mode: 'edit'; venue: Venue }
   | null
 
-function buildGeoJSON(venueList: Venue[], excludeId?: string): GeoJSON.FeatureCollection {
+function buildGeoJSON(venueList: Venue[], excludeId?: string): GeoJsonFeatureCollection {
   return {
     type: 'FeatureCollection',
     features: venueList
@@ -48,9 +48,11 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
   const addModeRef = useRef(false)
   const panelRef = useRef<PanelState>(null)
 
-  addModeRef.current = addMode
-  venuesRef.current = venues
-  panelRef.current = panel
+  useEffect(() => {
+    addModeRef.current = addMode
+    venuesRef.current = venues
+    panelRef.current = panel
+  }, [addMode, venues, panel])
 
   // Update GeoJSON source wanneer venues wijzigen
   const updateSource = useCallback((venueList: Venue[], excludeId?: string) => {
@@ -66,6 +68,18 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
     // Herstel volledige GeoJSON (geen excluded venue meer)
     updateSource(venuesRef.current)
   }, [updateSource])
+
+  function makeDragEl(type: string | null): HTMLDivElement {
+    const color = TYPE_COLORS[type ?? 'default'] ?? TYPE_COLORS.default
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width: 22px; height: 22px; border-radius: 50%;
+      background: ${color}; border: 3px solid white;
+      box-shadow: 0 0 0 2px ${color}55, 0 3px 10px rgba(0,0,0,0.5);
+      cursor: grab;
+    `
+    return el
+  }
 
   // Init kaart — één keer
   useEffect(() => {
@@ -97,7 +111,7 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
       fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
         .then(r => r.json())
         .then((data: { elements: { type: string; lat: number; lon: number; tags?: Record<string, string> }[] }) => {
-          const geojson: GeoJSON.FeatureCollection = {
+          const geojson: GeoJsonFeatureCollection = {
             type: 'FeatureCollection',
             features: data.elements
               .filter(el => el.type === 'node')
@@ -250,18 +264,6 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
     updateSource(venues, excludeId)
   }, [venues, updateSource])
 
-  function makeDragEl(type: string | null): HTMLDivElement {
-    const color = TYPE_COLORS[type ?? 'default'] ?? TYPE_COLORS.default
-    const el = document.createElement('div')
-    el.style.cssText = `
-      width: 22px; height: 22px; border-radius: 50%;
-      background: ${color}; border: 3px solid white;
-      box-shadow: 0 0 0 2px ${color}55, 0 3px 10px rgba(0,0,0,0.5);
-      cursor: grab;
-    `
-    return el
-  }
-
   // Haal huidige positie van de drag-marker op
   function getDragLatLng(): { lat: number; lng: number } | null {
     if (!dragMarker.current) return null
@@ -314,7 +316,7 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
             onClick={() => setAddMode(m => !m)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
               addMode
-                ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+                ? 'bg-opstap-orange-600 text-white ring-2 ring-opstap-orange-400'
                 : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
             }`}
             style={{ cursor: addMode ? 'crosshair' : undefined }}
@@ -375,8 +377,6 @@ export function VenueMap({ initialVenues }: { initialVenues: Venue[] }) {
 }
 
 // GeoJSON type declaraties
-declare namespace GeoJSON {
-  interface FeatureCollection { type: 'FeatureCollection'; features: Feature[] }
-  interface Feature<G = Geometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = { type: 'Point'; coordinates: number[] }
-}
+interface GeoJsonFeatureCollection { type: 'FeatureCollection'; features: GeoJsonFeature[] }
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; geometry: G; properties: Record<string, unknown> | null }
+type GeoJsonGeometry = { type: 'Point'; coordinates: number[] }

@@ -23,9 +23,12 @@ export function HashFoutBanner() {
       const label = (errorCode && FOUT_LABELS[errorCode]) ||
         errorDesc?.replace(/\+/g, ' ') ||
         'Er is een fout opgetreden via de link.'
-      setBericht(label)
       // Verwijder de hash uit de URL zonder herlaad
       window.history.replaceState(null, '', window.location.pathname)
+      // queueMicrotask i.p.v. direct setState: dit is het lezen van een
+      // browser-only API (window.location.hash) bij mount, geen synchrone
+      // reactie op React-state — voorkomt de cascading-render lint-waarschuwing.
+      queueMicrotask(() => setBericht(label))
     }
   }, [])
 

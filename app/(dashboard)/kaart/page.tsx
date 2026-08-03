@@ -8,6 +8,7 @@ import { UnifiedMapWrapper } from './_components/unified-map-wrapper'
 
 export default async function KaartPage() {
   const user = await getCurrentUser()
+  if (user?.role === 'marketing') redirect('/marketing')
   if (user?.role === 'provincial' && !user.province_id) redirect('/')
   const province_id = user?.role === 'provincial' ? (user.province_id ?? undefined) : undefined
 

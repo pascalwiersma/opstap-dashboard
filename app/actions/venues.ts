@@ -1,6 +1,5 @@
 'use server'
 
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
@@ -36,6 +35,51 @@ export type VenueInput = {
   description: string | null
   active: boolean
   opening_hours: Record<string, string> | null
+}
+
+export type VenueZoekResultaat = {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  type: VenueType | null
+}
+
+export async function searchVenues(query: string, cityNaam?: string): Promise<VenueZoekResultaat[]> {
+  const admin = adminClient()
+  if (!query.trim()) return []
+
+  let latMin: number | undefined, latMax: number | undefined
+  let lngMin: number | undefined, lngMax: number | undefined
+
+  if (cityNaam) {
+    const { data: gebied } = await admin
+      .from('uitgaansgebieden')
+      .select('centrum_lat, centrum_lng, radius_km')
+      .eq('naam', cityNaam)
+      .single()
+    if (gebied) {
+      const degr = (gebied.radius_km + 5) / 111
+      latMin = gebied.centrum_lat - degr; latMax = gebied.centrum_lat + degr
+      lngMin = gebied.centrum_lng - degr; lngMax = gebied.centrum_lng + degr
+    }
+  }
+
+  let q = admin
+    .from('venues')
+    .select('id, name, lat, lng, type')
+    .eq('active', true)
+    .ilike('name', `%${query}%`)
+    .order('name')
+    .limit(8)
+
+  if (latMin !== undefined) {
+    q = q.gte('lat', latMin).lte('lat', latMax!).gte('lng', lngMin!).lte('lng', lngMax!)
+  }
+
+  const { data, error } = await q
+  if (error) throw new Error(error.message)
+  return (data ?? []) as VenueZoekResultaat[]
 }
 
 export async function getVenues(province_id?: string): Promise<Venue[]> {

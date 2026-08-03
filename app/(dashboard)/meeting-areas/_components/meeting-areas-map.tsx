@@ -5,8 +5,10 @@ import mapboxgl from 'mapbox-gl'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import type { MeetingArea, ZoneCategorie } from '@/app/actions/meeting-areas'
-import { createMeetingArea, updateMeetingArea, deleteMeetingArea, toggleMeetingArea, ZONE_CATEGORIEEN, zonekleur } from '@/app/actions/meeting-areas'
+import type { MeetingArea } from '@/app/actions/meeting-areas'
+import { createMeetingArea, updateMeetingArea, deleteMeetingArea, toggleMeetingArea } from '@/app/actions/meeting-areas'
+import type { ZoneCategorie } from '@/app/lib/zone-utils'
+import { ZONE_CATEGORIEEN, zonekleur } from '@/app/lib/zone-utils'
 import { PenLine, Trash2, Check, X, Eye, EyeOff } from 'lucide-react'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
@@ -32,7 +34,9 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
   const [bezig, setBezig] = useState(false)
   const [tekenModus, setTekenModus] = useState(false)
 
-  areasRef.current = areas
+  useEffect(() => {
+    areasRef.current = areas
+  }, [areas])
 
   // Teken alle gebieden op de kaart
   const tekenGebieden = useCallback((areaList: MeetingArea[], uitgeslotenId?: string) => {
@@ -113,7 +117,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
     })
 
     // Nieuw gebied getekend
-    m.on('draw.create', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.create', (e: { features: GeoJsonFeature[] }) => {
       const feature = e.features[0]
       if (!feature || feature.geometry.type !== 'Polygon') return
       setPanel({ mode: 'create', featureId: feature.id as string })
@@ -122,7 +126,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
     })
 
     // Klik op bestaand gebied → edit modus
-    m.on('draw.selectionchange', (e: { features: GeoJSON.Feature[] }) => {
+    m.on('draw.selectionchange', (e: { features: GeoJsonFeature[] }) => {
       if (e.features.length === 0) return
       const feature = e.features[0]
       if (!feature) return
@@ -170,7 +174,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
   function getHuidigePolygoon(featureId: string): [number, number][] | null {
     const feature = draw.current?.get(featureId)
     if (!feature || feature.geometry.type !== 'Polygon') return null
-    const coords = (feature.geometry as GeoJSON.Polygon).coordinates[0]
+    const coords = (feature.geometry as GeoJsonPolygon).coordinates[0]
     return coords as [number, number][]
   }
 
@@ -231,7 +235,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
           onClick={startTekenen}
           className={`absolute top-4 left-4 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
             tekenModus
-              ? 'bg-violet-600 text-white ring-2 ring-violet-400'
+              ? 'bg-opstap-orange-600 text-white ring-2 ring-opstap-orange-400'
               : 'bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700'
           }`}
         >
@@ -290,7 +294,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
             onChange={e => setNaam(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && slaOp()}
             placeholder="Naam (bijv. Vismarkt)"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-opstap-orange-500"
           />
 
           <div className="flex flex-wrap gap-1.5">
@@ -314,7 +318,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
             <button
               onClick={slaOp}
               disabled={bezig || !naam.trim()}
-              className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
             >
               <Check className="w-4 h-4" />
               {bezig ? 'Opslaan...' : 'Opslaan'}
@@ -346,9 +350,7 @@ export function MeetingAreasMap({ initialAreas }: { initialAreas: MeetingArea[] 
 }
 
 // GeoJSON type declaraties
-declare namespace GeoJSON {
-  interface Feature<G = Geometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
-  type Geometry = Point | Polygon
-  interface Point { type: 'Point'; coordinates: number[] }
-  interface Polygon { type: 'Polygon'; coordinates: number[][][] }
-}
+type GeoJsonGeometry = GeoJsonPoint | GeoJsonPolygon
+interface GeoJsonFeature<G = GeoJsonGeometry> { type: 'Feature'; id?: string | number; geometry: G; properties: Record<string, unknown> | null }
+interface GeoJsonPoint { type: 'Point'; coordinates: number[] }
+interface GeoJsonPolygon { type: 'Polygon'; coordinates: number[][][] }

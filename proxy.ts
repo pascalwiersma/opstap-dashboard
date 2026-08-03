@@ -29,17 +29,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isPublicRoute = pathname === '/login' || pathname.startsWith('/auth/') || pathname === '/wachtwoord-instellen'
+  const isPublicRoute = pathname === '/login'
 
   // Niet ingelogd → naar login (publieke routes mogen door)
   if (!user) {
     if (isPublicRoute) return supabaseResponse
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Ingelogd op wachtwoord-instellen of auth callback → altijd doorlaten
-  if (pathname === '/wachtwoord-instellen' || pathname.startsWith('/auth/')) {
-    return supabaseResponse
   }
 
   // Check dashboard_role via service_role (bypast RLS)

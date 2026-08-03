@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+export type { ZoneCategorie } from '@/app/lib/zone-utils'
 import type { ZoneCategorie } from '@/app/lib/zone-utils'
 
 function adminClient() {

@@ -5,7 +5,7 @@ import { ProvinciesMapWrapper } from './_components/provincies-map-wrapper'
 
 export default async function ProvinciesPage() {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial') redirect('/')
+  if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
 
   const provinces = await getProvinces()
 
