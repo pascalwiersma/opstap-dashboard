@@ -27,7 +27,7 @@ export default async function KaartPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 shrink-0">
         <div>
-          <h1 className="text-white font-semibold text-lg">Kaart</h1>
+          <h1 className="text-white font-display text-lg">Kaart</h1>
           <p className="text-gray-500 text-sm">
             {userProvince ? `${userProvince.name} · ` : ''}{venues.length} venues · {events.length} evenement{events.length !== 1 ? 'en' : ''} · {areas.length} meetinggebied{areas.length !== 1 ? 'en' : ''}
           </p>

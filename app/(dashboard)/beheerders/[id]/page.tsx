@@ -24,7 +24,7 @@ export default async function BeheerderBewerkPage({ params }: { params: Promise<
           <ChevronLeft className="w-4 h-4" />
           Terug naar vertegenwoordigers
         </Link>
-        <h1 className="text-2xl font-bold text-white">Vertegenwoordiger bewerken</h1>
+        <h1 className="text-2xl font-display text-white">Vertegenwoordiger bewerken</h1>
         <p className="text-gray-400 mt-1 text-sm">Pas de toegang en provincie aan voor deze gebruiker.</p>
       </div>
 

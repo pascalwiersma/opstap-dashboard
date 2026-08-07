@@ -21,7 +21,7 @@ export default async function NieuwBeheerderPage() {
           <ChevronLeft className="w-4 h-4" />
           Terug naar vertegenwoordigers
         </Link>
-        <h1 className="text-2xl font-bold text-white">Vertegenwoordiger toevoegen</h1>
+        <h1 className="text-2xl font-display text-white">Vertegenwoordiger toevoegen</h1>
         <p className="text-gray-400 mt-1 text-sm">
           De gebruiker logt voortaan in met dit telefoonnummer via een SMS-verificatiecode.
         </p>
