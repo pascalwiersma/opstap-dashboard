@@ -16,7 +16,7 @@ export default async function RapportenPage() {
       <div className="px-8 py-6 border-b border-gray-800 flex items-center gap-4">
         <div className="flex items-center gap-3">
           <Flag className="w-5 h-5 text-gray-400" />
-          <h1 className="text-xl font-semibold text-white">Rapporten</h1>
+          <h1 className="text-xl font-display text-white">Rapporten</h1>
         </div>
         <div className="flex items-center gap-2 ml-auto">
           {aantalNieuw > 0 && (

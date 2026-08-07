@@ -13,7 +13,7 @@ export default async function ProvinciesPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 shrink-0">
         <div>
-          <h1 className="text-white font-semibold text-lg">Provincies</h1>
+          <h1 className="text-white font-display text-lg">Provincies</h1>
           <p className="text-gray-500 text-sm">
             {provinces.length} provincie{provinces.length !== 1 ? 's' : ''} — teken grenzen op de kaart
           </p>
