@@ -27,7 +27,7 @@ const VENUE_COLORS: Record<string, string> = {
   cafe: '#10b981',
   default: '#6b7280',
 }
-const EVENT_COLOR = '#ff6b35'
+const EVENT_COLOR = '#f1a74e'
 const MEETING_COLOR = '#f97316'
 
 type AddMode = 'venue' | 'event-point' | 'event-region' | null

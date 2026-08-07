@@ -18,7 +18,7 @@ type Props = {
   onClose: () => void
 }
 
-const OPSTAP_ORANGE = '#ff6b35'
+const OPSTAP_ORANGE = '#f1a74e'
 
 const COLOR_SWATCHES = [
   OPSTAP_ORANGE, // opstap
