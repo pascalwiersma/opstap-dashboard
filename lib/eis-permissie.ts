@@ -1,9 +1,9 @@
-import { getCurrentUser } from '@/lib/supabase-server'
+import { getCurrentUser, type CurrentUser } from '@/lib/supabase-server'
 import { kan, type Action, type Resource } from '@/lib/permissions'
 
-export async function eisPermissie(resource: Resource, action: Action) {
+export async function eisPermissie(resource: Resource, action: Action): Promise<CurrentUser> {
   const user = await getCurrentUser()
-  if (!kan(user, resource, action)) {
+  if (!user || !kan(user, resource, action)) {
     throw new Error('Geen toegang.')
   }
   return user

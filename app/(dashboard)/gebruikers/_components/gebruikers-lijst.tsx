@@ -10,10 +10,12 @@ import { useRouter } from 'next/navigation'
 
 export function GebruikersLijst({
   initialGebruikers,
+  huidigeUserId,
   kanBewerken,
   kanVerwijderen,
 }: {
   initialGebruikers: Gebruiker[]
+  huidigeUserId: string
   kanBewerken: boolean
   kanVerwijderen: boolean
 }) {
@@ -82,7 +84,7 @@ export function GebruikersLijst({
                     <Pencil className="w-4 h-4" />
                   </Link>
                   )}
-                  {kanVerwijderen && (
+                  {kanVerwijderen && g.id !== huidigeUserId && (
                   <button
                     onClick={() => handleVerwijder(g.id)}
                     disabled={bezig}

@@ -9,7 +9,7 @@ export default async function NieuwGebruikerPage() {
   const user = await getCurrentUser()
   if (!user || !kan(user, 'gebruikers', 'toevoegen')) redirect(user ? eersteToegestanePad(user) : '/')
 
-  const rollen = await getRolOpties()
+  const rollen = (await getRolOpties()).filter(r => r.slug !== 'admin' || user.role === 'admin')
 
   return (
     <div className="p-8 w-full">

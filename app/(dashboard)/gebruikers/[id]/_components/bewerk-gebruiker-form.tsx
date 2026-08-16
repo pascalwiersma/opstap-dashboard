@@ -14,9 +14,11 @@ const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 
 export function BewerkGebruikerForm({
   gebruiker,
   rollen,
+  isZelf,
 }: {
   gebruiker: Gebruiker
   rollen: { slug: string; name: string }[]
+  isZelf: boolean
 }) {
   const router = useRouter()
   const naam = splitsNaam(gebruiker.name)
@@ -154,7 +156,8 @@ export function BewerkGebruikerForm({
             <select
               value={rol}
               onChange={e => setRol(e.target.value)}
-              className={`${invoerKlasse} appearance-none pr-10`}
+              disabled={isZelf}
+              className={`${invoerKlasse} appearance-none pr-10 disabled:opacity-60`}
             >
               {rollen.map(optie => (
                 <option key={optie.slug} value={optie.slug}>{optie.name}</option>
@@ -162,6 +165,9 @@ export function BewerkGebruikerForm({
             </select>
             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
+          {isZelf && (
+            <p className="text-xs text-gray-500 mt-1.5">Je kunt je eigen rol niet wijzigen.</p>
+          )}
         </div>
       </section>
 

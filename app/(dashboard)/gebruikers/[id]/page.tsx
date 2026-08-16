@@ -21,7 +21,11 @@ export default async function GebruikerBewerkPage({ params }: { params: Promise<
         <h1 className="text-2xl font-display text-white">Gebruiker bewerken</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">{gebruiker.name ?? gebruiker.phone ?? 'Dashboardgebruiker'}</p>
-      <BewerkGebruikerForm gebruiker={gebruiker} rollen={rollen} />
+      <BewerkGebruikerForm
+        gebruiker={gebruiker}
+        rollen={user.role === 'admin' ? rollen : rollen.filter(r => r.slug !== 'admin' || r.slug === gebruiker.dashboard_role)}
+        isZelf={user.id === gebruiker.id}
+      />
     </div>
   )
 }
