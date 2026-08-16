@@ -47,15 +47,16 @@ function totpTabelOntbreekt(error: { code?: string; message: string }): boolean 
 async function totpIds(): Promise<Set<string>> {
   const { data, error } = await supabaseAdmin
     .from('dashboard_totp')
-    .select('user_id')
+    .select('user_id, verified, enabled')
   if (error) {
     if (totpTabelOntbreekt(error)) return new Set()
     throw new Error(error.message)
   }
-  return new Set((data ?? []).map(rij => {
-    if (typeof rij.user_id !== 'string') return ''
-    return rij.user_id
-  }).filter(id => id.length > 0))
+  return new Set((data ?? []).flatMap(rij => {
+    if (typeof rij.user_id !== 'string') return []
+    if (rij.verified !== true || rij.enabled !== true) return []
+    return [rij.user_id]
+  }))
 }
 
 function naarGebruiker(

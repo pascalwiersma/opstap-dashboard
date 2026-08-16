@@ -1,6 +1,6 @@
 'use client'
 
-import { totpVereistVoorHuidigeSessie, verifieerTotpLogin } from '@/app/actions/totp'
+import { totpStatusVoorHuidigeSessie, verifieerTotpLogin } from '@/app/actions/totp'
 import { createBrowserClient } from '@supabase/ssr'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
@@ -64,8 +64,12 @@ function LoginForm() {
       return
     }
 
-    const { vereist } = await totpVereistVoorHuidigeSessie()
-    if (vereist) {
+    const status = await totpStatusVoorHuidigeSessie()
+    if (status === 'setup') {
+      window.location.href = '/login/2fa-setup'
+      return
+    }
+    if (status === 'code') {
       setTotpCode('')
       setStep('totp')
       setLoading(false)
