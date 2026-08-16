@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { totpIsIngeschakeld } from '@/lib/totp-status'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -30,14 +29,15 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isLogin = pathname === '/login'
-  const isSetup = pathname === '/login/2fa-setup'
+  const isPublicRoute = pathname === '/login'
 
+  // Niet ingelogd → naar login (publieke routes mogen door)
   if (!user) {
-    if (isLogin) return supabaseResponse
+    if (isPublicRoute) return supabaseResponse
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Check dashboard_role via service_role (bypast RLS)
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -53,39 +53,12 @@ export async function proxy(request: NextRequest) {
   const heeftToegang = !!profile?.dashboard_role
 
   if (!heeftToegang) {
-    if (isLogin) return supabaseResponse
+    if (pathname === '/login') return supabaseResponse
     return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
 
-  const { data: totp } = await adminClient
-    .from('dashboard_totp')
-    .select('verified, enabled, verified_session_id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const enrolled = totpIsIngeschakeld({
-    verified: totp?.verified === true,
-    enabled: totp?.enabled === true,
-  })
-
-  if (!enrolled) {
-    if (isSetup) return supabaseResponse
-    return NextResponse.redirect(new URL('/login/2fa-setup', request.url))
-  }
-
-  const { data: claimsData } = await supabase.auth.getClaims()
-  const sessionId = typeof claimsData?.claims?.session_id === 'string'
-    ? claimsData.claims.session_id
-    : null
-  const totpPending = !sessionId || totp?.verified_session_id !== sessionId
-  if (totpPending) {
-    if (isLogin) return supabaseResponse
-    const url = new URL('/login', request.url)
-    url.searchParams.set('stap', 'totp')
-    return NextResponse.redirect(url)
-  }
-
-  if (isLogin || isSetup) {
+  // Ingelogd met toegang op login-pagina → naar dashboard
+  if (pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

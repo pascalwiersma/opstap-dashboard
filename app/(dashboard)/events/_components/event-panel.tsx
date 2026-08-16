@@ -47,6 +47,7 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
   const [color, setColor] = useState(event?.color ?? OPSTAP_ORANGE)
   const [photoUrl, setPhotoUrl] = useState<string | null>(event?.photo_url ?? null)
   const [active, setActive] = useState(event?.active ?? true)
+  const [radiusKm, setRadiusKm] = useState<number | ''>(event?.radius_km ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -70,6 +71,7 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
         lat: locationType === 'point' ? (lat ?? null) : null,
         lng: locationType === 'point' ? (lng ?? null) : null,
         polygon: locationType === 'region' ? (poly ?? null) : null,
+        radius_km: locationType === 'point' && radiusKm !== '' ? Number(radiusKm) : null,
         start_date: startDate,
         end_date: endDate,
         color,
@@ -149,7 +151,22 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
           )}
         </div>
         {locationType === 'point' && (
-          <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
+          <>
+            <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Straal (km)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={radiusKm}
+                onChange={e => setRadiusKm(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="Optioneel"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sky-500 transition-colors"
+              />
+              <p className="text-xs text-gray-600 mt-1">Toont een cirkel op de kaart naast de pin. Heeft geen invloed op wie kan inchecken.</p>
+            </div>
+          </>
         )}
 
         {/* Naam */}

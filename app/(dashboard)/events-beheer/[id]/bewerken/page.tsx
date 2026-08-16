@@ -1,4 +1,5 @@
 import { getEvent } from '@/app/actions/events'
+import { getUitgaansgebieden } from '@/app/actions/uitgaansgebieden'
 import { getCurrentUser } from '@/lib/supabase-server'
 import { redirect, notFound } from 'next/navigation'
 import { CalendarDays } from 'lucide-react'
@@ -9,7 +10,7 @@ export default async function BewerkenEventPage({ params }: { params: Promise<{ 
   if (!user || user.role !== 'admin') redirect('/')
 
   const { id } = await params
-  const event = await getEvent(id)
+  const [event, uitgaansgebieden] = await Promise.all([getEvent(id), getUitgaansgebieden()])
   if (!event) notFound()
 
   return (
@@ -19,7 +20,7 @@ export default async function BewerkenEventPage({ params }: { params: Promise<{ 
         <h1 className="text-2xl font-display text-white">Event bewerken</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">{event.title}</p>
-      <EventFormulier currentUserId={user.id} event={event} />
+      <EventFormulier uitgaansgebieden={uitgaansgebieden} currentUserId={user.id} event={event} />
     </div>
   )
 }

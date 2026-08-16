@@ -1,5 +1,6 @@
 import { getVenues } from '@/app/actions/venues'
 import { getCityEvents } from '@/app/actions/city-events'
+import { getMeetingAreas } from '@/app/actions/meeting-areas'
 import { getProvinces } from '@/app/actions/provinces'
 import { getCurrentUser } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
@@ -11,9 +12,10 @@ export default async function KaartPage() {
   if (user?.role === 'provincial' && !user.province_id) redirect('/')
   const province_id = user?.role === 'provincial' ? (user.province_id ?? undefined) : undefined
 
-  const [venues, events, provinces] = await Promise.all([
+  const [venues, events, areas, provinces] = await Promise.all([
     getVenues(province_id),
     getCityEvents(province_id),
+    getMeetingAreas(province_id),
     getProvinces(),
   ])
 
@@ -27,7 +29,7 @@ export default async function KaartPage() {
         <div>
           <h1 className="text-white font-display text-lg">Kaart</h1>
           <p className="text-gray-500 text-sm">
-            {userProvince ? `${userProvince.name} · ` : ''}{venues.length} venues · {events.length} evenement{events.length !== 1 ? 'en' : ''}
+            {userProvince ? `${userProvince.name} · ` : ''}{venues.length} venues · {events.length} evenement{events.length !== 1 ? 'en' : ''} · {areas.length} meetinggebied{areas.length !== 1 ? 'en' : ''}
           </p>
         </div>
       </div>
@@ -35,8 +37,10 @@ export default async function KaartPage() {
         <UnifiedMapWrapper
           initialVenues={venues}
           initialEvents={events}
+          initialAreas={areas}
           userProvinceId={user?.province_id ?? null}
           userProvince={userProvince}
+          userRole={user?.role ?? 'provincial'}
         />
       </div>
     </div>

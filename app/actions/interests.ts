@@ -127,22 +127,3 @@ export async function deleteInterestTag(id: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/interesses')
 }
-
-export type InterestTagVolgorde = {
-  id: string
-  category_id: string
-  sort_order: number
-}
-
-export async function herordenInterestTags(updates: InterestTagVolgorde[]): Promise<void> {
-  if (updates.length === 0) return
-  const supabase = adminClient()
-  const results = await Promise.all(
-    updates.map(({ id, category_id, sort_order }) =>
-      supabase.from('interests').update({ category_id, sort_order }).eq('id', id)
-    )
-  )
-  const failed = results.find(result => result.error)
-  if (failed?.error) throw new Error(failed.error.message)
-  revalidatePath('/interesses')
-}

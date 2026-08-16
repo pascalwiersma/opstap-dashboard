@@ -67,7 +67,6 @@ export function EventsLijst({ initialEvents }: Props) {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stad</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Venue</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Start</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Einde</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -81,9 +80,6 @@ export function EventsLijst({ initialEvents }: Props) {
                   <td className="px-5 py-3.5 text-gray-300">{event.city ?? <span className="text-gray-600">—</span>}</td>
                   <td className="px-5 py-3.5 text-gray-300">{event.venue_name ?? <span className="text-gray-600">—</span>}</td>
                   <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">{formatDatum(event.starts_at)}</td>
-                  <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">
-                    {event.ends_at ? formatDatum(event.ends_at) : <span className="text-gray-600">—</span>}
-                  </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${statusKleur(event.status)}`}>
                       {statusLabel(event.status)}
