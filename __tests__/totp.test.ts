@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nieuwTotpGeheim, totpGeldig, totpHuidigeCode, totpUri } from '@/lib/totp'
+import { nieuwTotpGeheim, totpGeldig, totpHuidigeCode, totpIsIngeschakeld, totpUri } from '@/lib/totp'
 
 describe('totp', () => {
   it('maakt een otpauth-URI met issuer OpStap', () => {
@@ -14,5 +14,12 @@ describe('totp', () => {
     const code = totpHuidigeCode(secret)
     expect(totpGeldig(secret, code)).toBe(true)
     expect(totpGeldig(secret, '000000')).toBe(false)
+  })
+
+  it('is alleen ingeschakeld als verified én enabled', () => {
+    expect(totpIsIngeschakeld(null)).toBe(false)
+    expect(totpIsIngeschakeld({ verified: true, enabled: false })).toBe(false)
+    expect(totpIsIngeschakeld({ verified: false, enabled: true })).toBe(false)
+    expect(totpIsIngeschakeld({ verified: true, enabled: true })).toBe(true)
   })
 })
