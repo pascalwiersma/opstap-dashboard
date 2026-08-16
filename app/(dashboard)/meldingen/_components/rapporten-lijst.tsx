@@ -142,14 +142,16 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
                     <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
                       {formatDatum(rapport.created_at)}
                     </td>
-                    <Link href={`/leden/${rapport.reporter.id}`} className="hover:opacity-80">
-                      <GebruikerCell naam={rapport.reporter.name} username={rapport.reporter.username} />
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/leden/${rapport.reported.id}`} className="hover:opacity-80">
-                      <GebruikerCell naam={rapport.reported.name} username={rapport.reported.username} />
-                    </Link>
+                    <td className="px-4 py-3">
+                      <Link href={`/leden/${rapport.reporter.id}`} className="hover:opacity-80">
+                        <GebruikerCell naam={rapport.reporter.name} username={rapport.reporter.username} />
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/leden/${rapport.reported.id}`} className="hover:opacity-80">
+                        <GebruikerCell naam={rapport.reported.name} username={rapport.reported.username} />
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-gray-300 max-w-xs">
                       <p className="truncate">{rapport.reason}</p>
                     </td>
