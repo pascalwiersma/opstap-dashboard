@@ -16,7 +16,7 @@ export default async function BugsPage() {
       <div className="px-8 py-6 border-b border-gray-800 flex items-center gap-4">
         <div className="flex items-center gap-3">
           <Bug className="w-5 h-5 text-gray-400" />
-          <h1 className="text-xl font-semibold text-white">Bugs</h1>
+          <h1 className="text-xl font-display text-white">Bugs</h1>
         </div>
         <div className="flex items-center gap-2 ml-auto">
           {aantalNieuw > 0 && (

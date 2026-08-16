@@ -44,7 +44,7 @@ export default async function MarketingPage({
     <div className="p-8">
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-white">Marketing</h1>
+          <h1 className="text-2xl font-display text-white">Marketing</h1>
           <p className="text-gray-400 mt-1 text-sm">Geaggregeerde campagnecijfers — geen individuele gebruikersdata</p>
         </div>
         <div className="text-right">
