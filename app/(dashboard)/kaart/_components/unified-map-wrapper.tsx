@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import type { Venue } from '@/app/actions/venues'
 import type { CityEvent } from '@/app/actions/city-events'
+import type { MeetingArea } from '@/app/actions/meeting-areas'
 import type { Province } from '@/app/actions/provinces'
 
 const UnifiedMap = dynamic(
@@ -20,20 +21,26 @@ const UnifiedMap = dynamic(
 export function UnifiedMapWrapper({
   initialVenues,
   initialEvents,
+  initialAreas,
   userProvinceId,
   userProvince,
+  userRole,
 }: {
   initialVenues: Venue[]
   initialEvents: CityEvent[]
+  initialAreas: MeetingArea[]
   userProvinceId?: string | null
   userProvince?: Province | null
+  userRole?: string
 }) {
   return (
     <UnifiedMap
       initialVenues={initialVenues}
       initialEvents={initialEvents}
+      initialAreas={initialAreas}
       userProvinceId={userProvinceId}
       userProvince={userProvince}
+      userRole={userRole}
     />
   )
 }

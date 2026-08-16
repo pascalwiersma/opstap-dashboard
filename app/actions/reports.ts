@@ -59,7 +59,7 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
     })
   }
 
-  revalidatePath('/meldingen')
+  revalidatePath('/rapporten')
 }
 
 export async function banGebruiker(reportId: string, reportedId: string) {
@@ -70,10 +70,10 @@ export async function banGebruiker(reportId: string, reportedId: string) {
     db.from('reports').update({ status: 'afgehandeld' }).eq('id', reportId),
   ])
 
-  revalidatePath('/meldingen')
+  revalidatePath('/rapporten')
 }
 
 export async function sluitRapport(reportId: string) {
   await adminClient().from('reports').update({ status: 'afgehandeld' }).eq('id', reportId)
-  revalidatePath('/meldingen')
+  revalidatePath('/rapporten')
 }

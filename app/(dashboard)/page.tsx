@@ -7,7 +7,7 @@ import { StatsCard } from './_components/stats-card'
 import { DagGrafiek } from './_components/dag-grafiek'
 import {
   Users, UserPlus, LogIn, CalendarCheck, Zap, CheckCheck,
-  MapPin, CalendarDays, ClipboardList,
+  MapPin, CalendarDays, Hexagon, ClipboardList,
 } from 'lucide-react'
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -26,9 +26,10 @@ async function AdminDashboard() {
         <StatsCard title="Bevestigde matches (7d)" value={stats.confirmedMatches} icon={CheckCheck} color="bg-orange-600" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-gray-700" />
         <StatsCard title="Evenementen" value={stats.events} icon={CalendarDays} color="bg-gray-700" />
+        <StatsCard title="Meeting areas" value={stats.areas} icon={Hexagon} color="bg-gray-700" />
       </div>
 
       <div className="grid grid-cols-2 gap-6">
@@ -57,9 +58,10 @@ async function VertegenwoordigerDashboard({ province_id, province_name }: { prov
 
   return (
     <>
-      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <StatsCard title="Venues" value={stats.venues} icon={MapPin} color="bg-opstap-orange-600" />
         <StatsCard title="Evenementen" value={stats.events} icon={CalendarDays} color="bg-blue-600" />
+        <StatsCard title="Meeting areas" value={stats.areas} icon={Hexagon} color="bg-emerald-600" />
         <StatsCard title="Registraties (7d)" value={stats.registratiesWeek} icon={ClipboardList} color="bg-orange-600" />
       </div>
 

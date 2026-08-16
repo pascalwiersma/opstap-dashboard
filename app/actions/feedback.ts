@@ -53,5 +53,5 @@ export async function updateFeedbackStatus(id: string, status: FeedbackStatus) {
     .update({ status })
     .eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/meldingen')
+  revalidatePath('/feedback')
 }

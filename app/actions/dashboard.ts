@@ -36,6 +36,7 @@ export async function getAdminStats() {
     { count: confirmedMatches },
     { count: venues },
     { count: events },
+    { count: areas },
   ] = await Promise.all([
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).is('dashboard_role', null),
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).is('dashboard_role', null).gte('created_at', weekAgo),
@@ -45,6 +46,7 @@ export async function getAdminStats() {
     supabaseAdmin.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'confirmed').gte('created_at', weekAgo),
     supabaseAdmin.from('venues').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('city_events').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('meeting_areas').select('*', { count: 'exact', head: true }),
   ])
 
   return {
@@ -56,6 +58,7 @@ export async function getAdminStats() {
     confirmedMatches: confirmedMatches ?? 0,
     venues: venues ?? 0,
     events: events ?? 0,
+    areas: areas ?? 0,
   }
 }
 
@@ -100,11 +103,13 @@ export async function getProvincieStats(province_id: string) {
   const [
     { count: venues },
     { count: events },
+    { count: areas },
     { count: registratiesTotal },
     { count: registratiesWeek },
   ] = await Promise.all([
     supabaseAdmin.from('venues').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
     supabaseAdmin.from('city_events').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
+    supabaseAdmin.from('meeting_areas').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
     supabaseAdmin
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
@@ -133,6 +138,7 @@ export async function getProvincieStats(province_id: string) {
   return {
     venues: venues ?? 0,
     events: events ?? 0,
+    areas: areas ?? 0,
     registratiesTotal: registratiesTotal ?? 0,
     registratiesWeek: registratiesWeek ?? 0,
   }

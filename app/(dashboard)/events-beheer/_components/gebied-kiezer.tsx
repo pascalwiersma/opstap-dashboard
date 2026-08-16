@@ -9,9 +9,6 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
 type Punt = [number, number]
 
-const KLEUR = '#f1a74e'
-const GRONINGEN: [number, number] = [6.5665, 53.2194]
-
 function centroid(pts: Punt[]): { lat: number; lng: number } {
   const lat = pts.reduce((s, p) => s + p[1], 0) / pts.length
   const lng = pts.reduce((s, p) => s + p[0], 0) / pts.length
@@ -54,17 +51,14 @@ function buildPuntenGeoJSON(pts: Punt[]): GeoJsonFeatureCollection {
   }
 }
 
-export type GetekendeLocatie = { lat: number; lng: number }
-
 type Props = {
-  initialCenter?: { lat: number; lng: number } | null
-  onChange: (locatie: GetekendeLocatie | null) => void
+  cityCenter?: { lat: number; lng: number }
+  onChange: (locatie: { lat: number; lng: number } | null) => void
 }
 
-export function GebiedKiezer({ initialCenter, onChange }: Props) {
+export function GebiedKiezer({ cityCenter, onChange }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
-  const markerRef = useRef<mapboxgl.Marker | null>(null)
   const puntRef = useRef<Punt[]>([])
   const voltooideRef = useRef(false)
 
@@ -79,20 +73,18 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
     ;(m.getSource('punten') as mapboxgl.GeoJSONSource)?.setData(buildPuntenGeoJSON(pts))
   }, [])
 
-  const startLat = initialCenter?.lat
-  const startLng = initialCenter?.lng
-
   useEffect(() => {
     if (!container.current || mapRef.current) return
 
-    const heeftStart = startLat != null && startLng != null
-    const center: [number, number] = heeftStart ? [startLng!, startLat!] : GRONINGEN
+    const center: [number, number] = cityCenter
+      ? [cityCenter.lng, cityCenter.lat]
+      : [5.2913, 52.1326]
 
     const m = new mapboxgl.Map({
       container: container.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       center,
-      zoom: heeftStart ? 13 : 11,
+      zoom: cityCenter ? 13 : 7,
     })
     mapRef.current = m
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
@@ -102,40 +94,19 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
       m.addSource('lijn', { type: 'geojson', data: buildLijnGeoJSON([], false) })
       m.addSource('punten', { type: 'geojson', data: buildPuntenGeoJSON([]) })
 
-      m.addLayer({
-        id: 'polygon-fill', type: 'fill', source: 'polygon',
-        paint: { 'fill-color': KLEUR, 'fill-opacity': 0.22 },
-      })
-      m.addLayer({
-        id: 'polygon-outline', type: 'line', source: 'polygon',
-        paint: { 'line-color': KLEUR, 'line-width': 2 },
-      })
-      m.addLayer({
-        id: 'lijn', type: 'line', source: 'lijn',
-        paint: { 'line-color': KLEUR, 'line-width': 2, 'line-dasharray': [2, 2] },
-      })
-      m.addLayer({
-        id: 'punten', type: 'circle', source: 'punten',
-        paint: {
-          'circle-radius': 5,
-          'circle-color': KLEUR,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-        },
-      })
-
-      if (heeftStart) {
-        markerRef.current = new mapboxgl.Marker({ color: KLEUR })
-          .setLngLat([startLng!, startLat!])
-          .addTo(m)
-      }
+      m.addLayer({ id: 'polygon-fill', type: 'fill', source: 'polygon',
+        paint: { 'fill-color': '#7c3aed', 'fill-opacity': 0.2 } })
+      m.addLayer({ id: 'polygon-outline', type: 'line', source: 'polygon',
+        paint: { 'line-color': '#7c3aed', 'line-width': 2 } })
+      m.addLayer({ id: 'lijn', type: 'line', source: 'lijn',
+        paint: { 'line-color': '#7c3aed', 'line-width': 2, 'line-dasharray': [2, 2] } })
+      m.addLayer({ id: 'punten', type: 'circle', source: 'punten',
+        paint: { 'circle-radius': 5, 'circle-color': '#7c3aed', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
 
       m.getCanvas().style.cursor = 'crosshair'
 
       m.on('click', (e) => {
         if (voltooideRef.current) return
-        markerRef.current?.remove()
-        markerRef.current = null
         const pt: Punt = [e.lngLat.lng, e.lngLat.lat]
         const next = [...puntRef.current, pt]
         puntRef.current = next
@@ -145,19 +116,23 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
     })
 
     return () => {
-      markerRef.current?.remove()
-      markerRef.current = null
       m.remove()
       mapRef.current = null
     }
-  }, [startLat, startLng, updateSources])
+  }, [cityCenter, updateSources])
+
+  // Fly to city when it changes
+  useEffect(() => {
+    if (!cityCenter || !mapRef.current) return
+    mapRef.current.flyTo({ center: [cityCenter.lng, cityCenter.lat], zoom: 13 })
+  }, [cityCenter])
 
   function onAfronden() {
     if (punten.length < 3) return
     voltooideRef.current = true
     setVoltooid(true)
     updateSources(punten, true)
-    if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'default'
+    mapRef.current?.getCanvas().setAttribute('style', 'cursor: default')
     onChange(centroid(punten))
   }
 
@@ -174,9 +149,7 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
     setPunten([])
     setVoltooid(false)
     updateSources([], false)
-    markerRef.current?.remove()
-    markerRef.current = null
-    if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'crosshair'
+    mapRef.current?.getCanvas().setAttribute('style', 'cursor: crosshair')
     onChange(null)
   }
 
@@ -184,6 +157,7 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
     <div className="relative">
       <div ref={container} className="w-full h-72 rounded-xl overflow-hidden" />
 
+      {/* Controls */}
       <div className="absolute top-3 left-3 z-10">
         {!voltooid ? (
           <div className="bg-gray-900/95 border border-gray-700 rounded-xl p-3 flex flex-col gap-2 min-w-44 shadow-xl">
@@ -196,7 +170,6 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
             </p>
             <div className="flex gap-2">
               <button
-                type="button"
                 onClick={onOngedaan}
                 disabled={punten.length === 0}
                 className="flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-lg text-xs font-medium bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors"
@@ -205,7 +178,6 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
                 Ongedaan
               </button>
               <button
-                type="button"
                 onClick={onOpnieuw}
                 disabled={punten.length === 0}
                 className="p-1.5 rounded-lg text-xs bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors"
@@ -215,7 +187,6 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
               </button>
             </div>
             <button
-              type="button"
               onClick={onAfronden}
               disabled={punten.length < 3}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -230,7 +201,6 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
           </div>
         ) : (
           <button
-            type="button"
             onClick={onOpnieuw}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium bg-gray-900/95 border border-gray-700 text-gray-300 hover:text-white shadow-xl transition-colors"
           >
