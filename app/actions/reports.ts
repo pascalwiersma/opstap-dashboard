@@ -48,6 +48,11 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
   const db = adminClient()
 
   await db.from('reports').update({ status: 'in_behandeling' }).eq('id', reportId)
+  await db.from('user_warnings').insert({
+    user_id: reportedId,
+    reason: 'Waarschuwing van OpStap',
+    detail: 'Houd je aan de community richtlijnen.',
+  })
 
   if (pushToken?.startsWith('ExponentPushToken[') || pushToken?.startsWith('ExpoPushToken[')) {
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -63,6 +68,8 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
   }
 
   revalidatePath('/meldingen')
+  revalidatePath('/leden')
+  revalidatePath(`/leden/${reportedId}`)
 }
 
 export async function banGebruiker(reportId: string, reportedId: string) {
@@ -75,6 +82,8 @@ export async function banGebruiker(reportId: string, reportedId: string) {
   ])
 
   revalidatePath('/meldingen')
+  revalidatePath('/leden')
+  revalidatePath(`/leden/${reportedId}`)
 }
 
 export async function sluitRapport(reportId: string) {
