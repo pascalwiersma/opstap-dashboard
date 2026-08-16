@@ -11,7 +11,7 @@ import { createCityEvent, updateCityEvent, deleteCityEvent } from '@/app/actions
 import { VenuePanel } from '../../venues/_components/venue-panel'
 import { EventPanel } from '../../events/_components/event-panel'
 import { MapPin, CalendarDays, Hexagon, X, Check, Layers } from 'lucide-react'
-import { pointInPolygon, circlePolygon } from '@/lib/geo'
+import { pointInPolygon } from '@/lib/geo'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
@@ -72,20 +72,6 @@ function eventRegionsGeoJSON(events: CityEvent[], excludeId?: string) {
           type: 'Polygon' as const,
           coordinates: [[...e.polygon!, e.polygon![0]]],
         },
-        properties: { id: e.id, color: e.color ?? EVENT_COLOR },
-      })),
-  }
-}
-
-/** Berekende cirkel (punt-events met radius_km) — puur kaartweergave, geen eligibility-regel. */
-function eventRadiusGeoJSON(events: CityEvent[], excludeId?: string) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: events
-      .filter(e => e.location_type === 'point' && e.lat != null && e.lng != null && e.radius_km != null && e.id !== excludeId)
-      .map(e => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Polygon' as const, coordinates: [circlePolygon(Number(e.lat), Number(e.lng), e.radius_km!)] },
         properties: { id: e.id, color: e.color ?? EVENT_COLOR },
       })),
   }
@@ -178,11 +164,6 @@ export function UnifiedMap({
     src?.setData(eventRegionsGeoJSON(e, ex))
   }, [])
 
-  const updEventRadius = useCallback((e: CityEvent[], ex?: string) => {
-    const src = map.current?.getSource('event-radius') as mapboxgl.GeoJSONSource | undefined
-    src?.setData(eventRadiusGeoJSON(e, ex))
-  }, [])
-
   const updDrawing = useCallback((pts: [number, number][]) => {
     const src = map.current?.getSource('drawing') as mapboxgl.GeoJSONSource | undefined
     src?.setData(drawingGeoJSON(pts))
@@ -199,8 +180,7 @@ export function UnifiedMap({
     updVenues(venuesRef.current)
     updEventPts(eventsRef.current)
     updEventRegs(eventsRef.current)
-    updEventRadius(eventsRef.current)
-  }, [updVenues, updEventPts, updEventRegs, updEventRadius, updDrawing])
+  }, [updVenues, updEventPts, updEventRegs, updDrawing])
 
   const cancelDraw = useCallback(() => {
     setAddMode(null)
@@ -253,7 +233,6 @@ export function UnifiedMap({
     m.on('load', () => {
       m.addSource('event-regions', { type: 'geojson', data: eventRegionsGeoJSON(eventsRef.current) })
       m.addSource('event-points', { type: 'geojson', data: eventPointsGeoJSON(eventsRef.current) })
-      m.addSource('event-radius', { type: 'geojson', data: eventRadiusGeoJSON(eventsRef.current) })
       m.addSource('venues', { type: 'geojson', data: venueGeoJSON(venuesRef.current) })
       m.addSource('drawing', { type: 'geojson', data: drawingGeoJSON([]) })
 
@@ -363,30 +342,6 @@ export function UnifiedMap({
           'line-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
           'line-width': 2.5,
           'line-opacity': 0.9,
-        },
-      })
-
-      // Berekende cirkel (punt-event met radius_km) — gestippeld om visueel te
-      // onderscheiden van een handgetekende regio. Passieve achtergrond, niet
-      // klikbaar (zie hoverLayers).
-      m.addLayer({
-        id: 'event-radius-fill',
-        type: 'fill',
-        source: 'event-radius',
-        paint: {
-          'fill-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
-          'fill-opacity': 0.10,
-        },
-      })
-      m.addLayer({
-        id: 'event-radius-outline',
-        type: 'line',
-        source: 'event-radius',
-        paint: {
-          'line-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
-          'line-width': 1.5,
-          'line-opacity': 0.7,
-          'line-dasharray': [4, 2],
         },
       })
 
@@ -527,7 +482,6 @@ export function UnifiedMap({
           if (!ev) return
           dragMarker.current?.remove()
           updEventPts(eventsRef.current, id)
-          updEventRadius(eventsRef.current, id)
           const el = makeDragEl(ev.color ?? EVENT_COLOR, true)
           dragMarker.current = new mapboxgl.Marker({ element: el, draggable: true })
             .setLngLat([Number(ev.lng), Number(ev.lat)]).addTo(m)
@@ -555,7 +509,7 @@ export function UnifiedMap({
       m.remove()
       map.current = null
     }
-  }, [updVenues, updEventPts, updEventRegs, updEventRadius, updDrawing])
+  }, [updVenues, updEventPts, updEventRegs, updDrawing])
 
   // Sync venue/event sources
   useEffect(() => {
@@ -564,8 +518,7 @@ export function UnifiedMap({
     updVenues(venues, exVenue)
     updEventPts(events, exEvent)
     updEventRegs(events)
-    updEventRadius(events, exEvent)
-  }, [venues, events, updVenues, updEventPts, updEventRegs, updEventRadius])
+  }, [venues, events, updVenues, updEventPts, updEventRegs])
 
   // Cursor
   useEffect(() => {
