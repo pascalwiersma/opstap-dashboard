@@ -1,4 +1,3 @@
-import { getUitgaansgebieden } from '@/app/actions/uitgaansgebieden'
 import { getCurrentUser } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { CalendarPlus } from 'lucide-react'
@@ -8,8 +7,6 @@ export default async function NieuwEventPage() {
   const user = await getCurrentUser()
   if (!user || user.role !== 'admin') redirect('/')
 
-  const uitgaansgebieden = await getUitgaansgebieden()
-
   return (
     <div className="p-8">
       <div className="flex items-center gap-3 mb-2">
@@ -17,7 +14,7 @@ export default async function NieuwEventPage() {
         <h1 className="text-2xl font-display text-white">Nieuw event</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">Vul de gegevens in om een event aan te maken</p>
-      <EventFormulier uitgaansgebieden={uitgaansgebieden} currentUserId={user.id} />
+      <EventFormulier currentUserId={user.id} />
     </div>
   )
 }
