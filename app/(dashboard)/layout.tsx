@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
+import { RolVoorbeeldBanner } from './_components/rol-voorbeeld-banner'
 
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${rolBadgeKlasse(user.role)} text-white`}>
                 {user.role_name}
               </span>
+              {user.preview_role && (
+                <span className="text-[10px] uppercase tracking-wide text-amber-400">voorbeeld</span>
+              )}
             </div>
             <p className="text-xs text-gray-500 truncate">{user.name ?? user.phone}</p>
           </Link>
@@ -87,6 +91,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       <main className="flex-1 overflow-y-auto">
+        {user.preview_role && <RolVoorbeeldBanner rolNaam={user.role_name} />}
         <HashFoutBanner />
         {children}
       </main>

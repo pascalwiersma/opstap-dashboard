@@ -30,6 +30,8 @@ export default async function RollenPage() {
         kanToevoegen={kan(user, 'rollen', 'toevoegen')}
         kanBewerken={kan(user, 'rollen', 'bewerken')}
         kanVerwijderen={kan(user, 'rollen', 'verwijderen')}
+        kanVoorbeeld={!!user && (user.echte_role === 'admin' || user.echte_permissions.has('rollen:bewerken'))}
+        eigenSlug={user?.echte_role ?? ''}
       />
     </div>
   )
