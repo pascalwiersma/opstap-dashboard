@@ -45,7 +45,7 @@ export type CityEventInput = {
   location_type: 'point' | 'region'
   lat: number | null
   lng: number | null
-  radius_km: number | null
+  radius_km?: number | null
   polygon: [number, number][] | null
   start_date: string
   end_date: string
@@ -67,9 +67,11 @@ export async function getCityEvents(province_id?: string): Promise<CityEvent[]> 
 }
 
 export async function createCityEvent(input: CityEventInput): Promise<CityEvent> {
+  const { radius_km: _radius, ...rest } = input
+  void _radius
   const { data, error } = await adminClient()
     .from('city_events')
-    .insert(input)
+    .insert(rest)
     .select('id, name, description, event_type, location_type, lat, lng, radius_km, polygon, start_date, end_date, color, photo_url, active, created_at')
     .single()
   if (error) throw new Error(error.message)
@@ -78,9 +80,11 @@ export async function createCityEvent(input: CityEventInput): Promise<CityEvent>
 }
 
 export async function updateCityEvent(id: string, input: CityEventInput) {
+  const { radius_km: _radius, ...rest } = input
+  void _radius
   const { error } = await adminClient()
     .from('city_events')
-    .update(input)
+    .update(rest)
     .eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/kaart')

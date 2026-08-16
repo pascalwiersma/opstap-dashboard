@@ -4,15 +4,11 @@ import { redirect } from 'next/navigation'
 import {
   LayoutDashboard,
   Map,
-  Flag,
-  Globe,
   Users,
   LogOut,
-  MapPin,
   CalendarDays,
   Tags,
-  Bug,
-  MessageSquare,
+  Inbox,
   Megaphone,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -42,14 +38,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
     { href: '/marketing', label: 'Marketing', icon: Megaphone, roles: ['admin', 'national', 'marketing'] },
-    { href: '/rapporten', label: 'Rapporten', icon: Flag, roles: ['admin', 'national'] },
-    { href: '/bugs', label: 'Bugs', icon: Bug, roles: ['admin', 'national'] },
-    { href: '/feedback', label: 'Feedback', icon: MessageSquare, roles: ['admin', 'national'] },
-    { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
-    { href: '/uitgaansgebieden', label: 'Uitgaansgebieden', icon: MapPin, roles: ['admin'] },
+    { href: '/meldingen', label: 'Meldingen', icon: Inbox, roles: ['admin', 'national'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
     { href: '/interesses', label: 'Interesses', icon: Tags, roles: ['admin'] },
-    { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
+    { href: '/gebruikers', label: 'Gebruikers', icon: Users, roles: ['admin'] },
   ].filter(item =>
     item.roles.includes(user.role) &&
     (!item.requiresProvincie || heeftProvincie)

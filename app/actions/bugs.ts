@@ -71,5 +71,5 @@ export async function updateBugStatus(id: string, status: BugStatus) {
     .update({ status })
     .eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/bugs')
+  revalidatePath('/meldingen')
 }
