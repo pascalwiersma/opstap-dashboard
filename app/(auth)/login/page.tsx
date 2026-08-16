@@ -125,7 +125,7 @@ function LoginForm() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="OpStap" className="w-11 h-11 object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-white">OpStap Dashboard</h1>
+          <h1 className="text-2xl font-display text-white">OpStap Dashboard</h1>
         </div>
 
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8">

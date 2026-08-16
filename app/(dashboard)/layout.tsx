@@ -26,7 +26,7 @@ const ROL_LABEL: Record<string, string> = {
 }
 
 const ROL_KLEUR: Record<string, string> = {
-  admin: 'bg-opstap-purple-600',
+  admin: 'bg-blue-600',
   national: 'bg-emerald-600',
   provincial: 'bg-emerald-600',
   marketing: 'bg-pink-600',

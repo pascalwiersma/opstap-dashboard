@@ -15,7 +15,7 @@ export default async function BeheerderPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Vertegenwoordigers</h1>
+          <h1 className="text-2xl font-display text-white">Vertegenwoordigers</h1>
           <p className="text-gray-400 mt-1 text-sm">
             Dashboard toegang beheren — {beheerders.length} gebruiker{beheerders.length !== 1 ? 's' : ''}
           </p>

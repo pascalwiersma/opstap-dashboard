@@ -17,7 +17,7 @@ export default async function InteressesPage() {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-2">
         <Tags className="w-6 h-6 text-opstap-orange-400" />
-        <h1 className="text-2xl font-bold text-white">Interesses</h1>
+        <h1 className="text-2xl font-display text-white">Interesses</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">
         Interesse-tags (&quot;wat vind je leuk&quot;) beheren, ingedeeld in categorieën — direct
