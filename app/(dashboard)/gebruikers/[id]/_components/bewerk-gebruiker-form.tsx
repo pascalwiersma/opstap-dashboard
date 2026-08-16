@@ -51,7 +51,7 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
   }
 
   async function handleTotp(regenereren: boolean) {
-    if (regenereren && !confirm('Nieuwe 2FA-code genereren? De oude code in Dashlane werkt dan niet meer.')) {
+    if (regenereren && !confirm('Nieuwe 2FA-code genereren? De oude code werkt dan niet meer.')) {
       return
     }
     setTotpBezig(true)
@@ -166,7 +166,7 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
       <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">2FA (TOTP)</h2>
         <p className="text-xs text-gray-500">
-          Scan de QR in een authenticator of plak de geheime code in Dashlane. Issuer: OpStap.
+          Scan de QR in een authenticator. Issuer: OpStap.
         </p>
         {totpActief && !enrollment && (
           <p className="text-sm text-emerald-400">2FA is actief voor deze gebruiker.</p>
@@ -183,7 +183,7 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
               className="w-60 h-60 rounded-xl bg-white p-2"
             />
             <div>
-              <p className="text-xs font-medium text-gray-400 mb-1.5">Geheime code (voor Dashlane)</p>
+              <p className="text-xs font-medium text-gray-400 mb-1.5">Geheime code</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white tracking-wider break-all">
                   {enrollment.secret}
