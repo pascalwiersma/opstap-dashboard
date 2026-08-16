@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function FeedbackPage() {
-  redirect('/meldingen?tab=rapporten')
+  redirect('/meldingen?tab=feedback')
 }
