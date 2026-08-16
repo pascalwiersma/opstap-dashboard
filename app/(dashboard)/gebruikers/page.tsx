@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { getGebruikers } from '@/app/actions/gebruikers'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import { GebruikersLijst } from './_components/gebruikers-lijst'
 import { UserPlus, Users } from 'lucide-react'
 
 export default async function GebruikersPage() {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') redirect('/')
+  if (!user || !kan(user, 'gebruikers', 'zien')) redirect(user ? eersteToegestanePad(user) : '/')
 
   const gebruikers = await getGebruikers()
 
@@ -23,15 +24,21 @@ export default async function GebruikersPage() {
             Dashboardtoegang beheren — {gebruikers.length} gebruiker{gebruikers.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link
-          href="/gebruikers/nieuw"
-          className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
-        >
-          <UserPlus className="w-4 h-4" />
-          Toevoegen
-        </Link>
+        {kan(user, 'gebruikers', 'toevoegen') && (
+          <Link
+            href="/gebruikers/nieuw"
+            className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            Toevoegen
+          </Link>
+        )}
       </div>
-      <GebruikersLijst initialGebruikers={gebruikers} />
+      <GebruikersLijst
+        initialGebruikers={gebruikers}
+        kanBewerken={kan(user, 'gebruikers', 'bewerken')}
+        kanVerwijderen={kan(user, 'gebruikers', 'verwijderen')}
+      />
     </div>
   )
 }

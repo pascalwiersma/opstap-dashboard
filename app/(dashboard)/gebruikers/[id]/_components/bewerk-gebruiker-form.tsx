@@ -7,18 +7,23 @@ import { updateGebruiker } from '@/app/actions/gebruikers'
 import { bevestigTotpVoorGebruiker, disableTotp, enrollTotp, resetTotp, type TotpEnrollment } from '@/app/actions/totp'
 import { TotpQrGeheim } from '@/app/_components/totp-qr-geheim'
 import { splitsNaam } from '@/lib/naam'
-import { ROL_OPTIES, type DashboardRol } from '@/lib/dashboard-rollen'
 import { ArrowLeft, ChevronDown, Loader2, Save, Shield } from 'lucide-react'
 
 const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors'
 
-export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
+export function BewerkGebruikerForm({
+  gebruiker,
+  rollen,
+}: {
+  gebruiker: Gebruiker
+  rollen: { slug: string; name: string }[]
+}) {
   const router = useRouter()
   const naam = splitsNaam(gebruiker.name)
   const [voornaam, setVoornaam] = useState(naam.voornaam)
   const [achternaam, setAchternaam] = useState(naam.achternaam)
   const [phone, setPhone] = useState(gebruiker.phone ?? '')
-  const [rol, setRol] = useState<DashboardRol>(gebruiker.dashboard_role)
+  const [rol, setRol] = useState(gebruiker.dashboard_role)
   const [wachtwoord, setWachtwoord] = useState('')
   const [wachtwoordBevestiging, setWachtwoordBevestiging] = useState('')
   const [bezig, setBezig] = useState(false)
@@ -148,18 +153,15 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
           <div className="relative">
             <select
               value={rol}
-              onChange={e => setRol(e.target.value as DashboardRol)}
+              onChange={e => setRol(e.target.value)}
               className={`${invoerKlasse} appearance-none pr-10`}
             >
-              {ROL_OPTIES.map(optie => (
-                <option key={optie.value} value={optie.value}>{optie.label}</option>
+              {rollen.map(optie => (
+                <option key={optie.slug} value={optie.slug}>{optie.name}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
-          <p className="text-xs text-gray-500 mt-1.5">
-            {ROL_OPTIES.find(o => o.value === rol)?.description}
-          </p>
         </div>
       </section>
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { supabaseAdmin } from '@/lib/supabase'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function dagLabels(days = 30) {
   const labels: Record<string, number> = {}
@@ -24,6 +25,7 @@ function toChartData(counts: Record<string, number>) {
 // ── Admin: globale statistieken ───────────────────────────────────────────────
 
 export async function getAdminStats() {
+  await eisPermissie('overzicht', 'zien')
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const todayStart = new Date().toISOString().slice(0, 10)
 
@@ -60,6 +62,7 @@ export async function getAdminStats() {
 }
 
 export async function getAdminChartData() {
+  await eisPermissie('overzicht', 'zien')
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const [{ data: users }, { data: checkins }] = await Promise.all([
@@ -95,6 +98,7 @@ export async function getAdminChartData() {
 // ── Vertegenwoordiger: provincie-statistieken ─────────────────────────────────
 
 export async function getProvincieStats(province_id: string) {
+  await eisPermissie('overzicht', 'zien')
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const [
@@ -139,6 +143,7 @@ export async function getProvincieStats(province_id: string) {
 }
 
 export async function getProvincieChartData(province_id: string) {
+  await eisPermissie('overzicht', 'zien')
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const { data: eventIds } = await supabaseAdmin

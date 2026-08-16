@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { sanitizeOmschrijving } from '@/lib/sanitize-omschrijving'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -84,6 +85,7 @@ export async function searchVenues(query: string, cityNaam?: string): Promise<Ve
 }
 
 export async function getVenues(province_id?: string): Promise<Venue[]> {
+  await eisPermissie('locaties', 'zien')
   let query = adminClient()
     .from('venues')
     .select('id, name, lat, lng, type, description, photo_url, active, opening_hours, created_at')
@@ -96,6 +98,7 @@ export async function getVenues(province_id?: string): Promise<Venue[]> {
 }
 
 export async function createVenue(input: VenueInput): Promise<Venue> {
+  await eisPermissie('locaties', 'toevoegen')
   const { data, error } = await adminClient()
     .from('venues')
     .insert({
@@ -112,6 +115,7 @@ export async function createVenue(input: VenueInput): Promise<Venue> {
 }
 
 export async function updateVenue(id: string, input: VenueInput) {
+  await eisPermissie('locaties', 'bewerken')
   const { error } = await adminClient()
     .from('venues')
     .update({
@@ -126,6 +130,7 @@ export async function updateVenue(id: string, input: VenueInput) {
 }
 
 export async function deleteVenue(id: string) {
+  await eisPermissie('locaties', 'verwijderen')
   const { error } = await adminClient().from('venues').delete().eq('id', id)
 
   if (error) throw new Error(error.message)
@@ -152,6 +157,7 @@ export async function getVenuePhotos(venueId: string): Promise<VenuePhoto[]> {
 }
 
 export async function uploadVenuePhoto(venueId: string, formData: FormData): Promise<VenuePhoto> {
+  await eisPermissie('locaties', 'bewerken')
   const file = formData.get('file') as File
   if (!file) throw new Error('Geen bestand gevonden.')
 
@@ -186,6 +192,7 @@ export async function uploadVenuePhoto(venueId: string, formData: FormData): Pro
 }
 
 export async function deleteVenuePhoto(photoId: string, photoUrl: string) {
+  await eisPermissie('locaties', 'bewerken')
   const url = new URL(photoUrl)
   const pathParts = url.pathname.split('/venue-photos/')
   const storagePath = pathParts[1]

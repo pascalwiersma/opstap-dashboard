@@ -4,11 +4,19 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { Gebruiker } from '@/app/actions/gebruikers'
 import { removeGebruiker } from '@/app/actions/gebruikers'
-import { ROL_KLEUR, ROL_LABEL } from '@/lib/dashboard-rollen'
+import { rolKleur } from '@/lib/dashboard-rollen'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-export function GebruikersLijst({ initialGebruikers }: { initialGebruikers: Gebruiker[] }) {
+export function GebruikersLijst({
+  initialGebruikers,
+  kanBewerken,
+  kanVerwijderen,
+}: {
+  initialGebruikers: Gebruiker[]
+  kanBewerken: boolean
+  kanVerwijderen: boolean
+}) {
   const [gebruikers, setGebruikers] = useState(initialGebruikers)
   const [bezig, setBezig] = useState(false)
   const router = useRouter()
@@ -52,8 +60,8 @@ export function GebruikersLijst({ initialGebruikers }: { initialGebruikers: Gebr
                 <div className="text-gray-500 text-xs">{g.phone}</div>
               </td>
               <td className="px-5 py-3.5">
-                <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${ROL_KLEUR[g.dashboard_role]}`}>
-                  {ROL_LABEL[g.dashboard_role]}
+                <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${rolKleur(g.dashboard_role)}`}>
+                  {g.dashboard_role_name}
                 </span>
               </td>
               <td className="px-5 py-3.5 text-sm">
@@ -65,6 +73,7 @@ export function GebruikersLijst({ initialGebruikers }: { initialGebruikers: Gebr
               </td>
               <td className="px-5 py-3.5">
                 <div className="flex items-center justify-end gap-1.5">
+                  {kanBewerken && (
                   <Link
                     href={`/gebruikers/${g.id}`}
                     className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
@@ -72,6 +81,8 @@ export function GebruikersLijst({ initialGebruikers }: { initialGebruikers: Gebr
                   >
                     <Pencil className="w-4 h-4" />
                   </Link>
+                  )}
+                  {kanVerwijderen && (
                   <button
                     onClick={() => handleVerwijder(g.id)}
                     disabled={bezig}
@@ -80,6 +91,7 @@ export function GebruikersLijst({ initialGebruikers }: { initialGebruikers: Gebr
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  )}
                 </div>
               </td>
             </tr>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -30,6 +31,7 @@ export type Feedback = {
 }
 
 export async function getFeedback(status?: FeedbackStatus): Promise<Feedback[]> {
+  await eisPermissie('meldingen', 'zien')
   const db = adminClient()
 
   let query = db
@@ -48,6 +50,7 @@ export async function getFeedback(status?: FeedbackStatus): Promise<Feedback[]> 
 }
 
 export async function updateFeedbackStatus(id: string, status: FeedbackStatus) {
+  await eisPermissie('meldingen', 'bewerken')
   const { error } = await adminClient()
     .from('feedback')
     .update({ status })

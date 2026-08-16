@@ -1,12 +1,13 @@
 import { getInterestCategorieen, getInterestTags } from '@/app/actions/interests'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import { InteressesLijst } from './_components/interesses-lijst'
 import { Tags } from 'lucide-react'
 
 export default async function InteressesPage() {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') redirect('/')
+  if (!user || !kan(user, 'interesses', 'zien')) redirect(user ? eersteToegestanePad(user) : '/')
 
   const [categorieen, tags] = await Promise.all([
     getInterestCategorieen(),

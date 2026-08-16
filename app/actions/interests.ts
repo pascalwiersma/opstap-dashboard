@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -42,6 +43,7 @@ export type InterestTagInput = {
 }
 
 export async function getInterestCategorieen(): Promise<InterestCategorie[]> {
+  await eisPermissie('interesses', 'zien')
   const { data, error } = await adminClient()
     .from('interest_categories')
     .select('id, name, sort_order, created_at')
@@ -51,6 +53,7 @@ export async function getInterestCategorieen(): Promise<InterestCategorie[]> {
 }
 
 export async function getInterestTags(): Promise<InterestTag[]> {
+  await eisPermissie('interesses', 'zien')
   const { data, error } = await adminClient()
     .from('interests')
     .select('id, category_id, label, emoji, sort_order, active, created_at')
@@ -60,6 +63,7 @@ export async function getInterestTags(): Promise<InterestTag[]> {
 }
 
 export async function createInterestCategorie(input: InterestCategorieInput): Promise<InterestCategorie> {
+  await eisPermissie('interesses', 'toevoegen')
   const { data, error } = await adminClient()
     .from('interest_categories')
     .insert(input)
@@ -71,6 +75,7 @@ export async function createInterestCategorie(input: InterestCategorieInput): Pr
 }
 
 export async function updateInterestCategorie(id: string, input: Partial<InterestCategorieInput>) {
+  await eisPermissie('interesses', 'bewerken')
   const { error } = await adminClient()
     .from('interest_categories')
     .update(input)
@@ -80,6 +85,7 @@ export async function updateInterestCategorie(id: string, input: Partial<Interes
 }
 
 export async function deleteInterestCategorie(id: string) {
+  await eisPermissie('interesses', 'verwijderen')
   const { error } = await adminClient()
     .from('interest_categories')
     .delete()
@@ -94,6 +100,7 @@ export async function deleteInterestCategorie(id: string) {
 }
 
 export async function createInterestTag(input: InterestTagInput): Promise<InterestTag> {
+  await eisPermissie('interesses', 'toevoegen')
   const { data, error } = await adminClient()
     .from('interests')
     .insert(input)
@@ -108,6 +115,7 @@ export async function createInterestTag(input: InterestTagInput): Promise<Intere
 }
 
 export async function updateInterestTag(id: string, input: Partial<InterestTagInput>) {
+  await eisPermissie('interesses', 'bewerken')
   const { error } = await adminClient()
     .from('interests')
     .update(input)
@@ -120,6 +128,7 @@ export async function updateInterestTag(id: string, input: Partial<InterestTagIn
 }
 
 export async function deleteInterestTag(id: string) {
+  await eisPermissie('interesses', 'verwijderen')
   const { error } = await adminClient()
     .from('interests')
     .delete()
@@ -135,6 +144,7 @@ export type InterestTagVolgorde = {
 }
 
 export async function herordenInterestTags(updates: InterestTagVolgorde[]): Promise<void> {
+  await eisPermissie('interesses', 'bewerken')
   if (updates.length === 0) return
   const supabase = adminClient()
   const results = await Promise.all(

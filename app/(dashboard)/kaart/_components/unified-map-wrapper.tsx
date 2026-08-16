@@ -22,11 +22,17 @@ export function UnifiedMapWrapper({
   initialEvents,
   userProvinceId,
   userProvince,
+  kanToevoegen,
+  kanBewerken,
+  kanVerwijderen,
 }: {
   initialVenues: Venue[]
   initialEvents: CityEvent[]
   userProvinceId?: string | null
   userProvince?: Province | null
+  kanToevoegen: boolean
+  kanBewerken: boolean
+  kanVerwijderen: boolean
 }) {
   return (
     <UnifiedMap
@@ -34,6 +40,9 @@ export function UnifiedMapWrapper({
       initialEvents={initialEvents}
       userProvinceId={userProvinceId}
       userProvince={userProvince}
+      kanToevoegen={kanToevoegen}
+      kanBewerken={kanBewerken}
+      kanVerwijderen={kanVerwijderen}
     />
   )
 }

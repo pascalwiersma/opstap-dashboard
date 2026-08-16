@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -23,6 +24,7 @@ export type Rapport = {
 }
 
 export async function getRapporten(status?: RapportStatus): Promise<Rapport[]> {
+  await eisPermissie('meldingen', 'zien')
   const db = adminClient()
 
   let query = db
@@ -42,6 +44,7 @@ export async function getRapporten(status?: RapportStatus): Promise<Rapport[]> {
 }
 
 export async function waarschuwGebruiker(reportId: string, reportedId: string, pushToken: string | null) {
+  await eisPermissie('meldingen', 'bewerken')
   const db = adminClient()
 
   await db.from('reports').update({ status: 'in_behandeling' }).eq('id', reportId)
@@ -63,6 +66,7 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
 }
 
 export async function banGebruiker(reportId: string, reportedId: string) {
+  await eisPermissie('meldingen', 'bewerken')
   const db = adminClient()
 
   await Promise.all([
@@ -74,6 +78,7 @@ export async function banGebruiker(reportId: string, reportedId: string) {
 }
 
 export async function sluitRapport(reportId: string) {
+  await eisPermissie('meldingen', 'bewerken')
   await adminClient().from('reports').update({ status: 'afgehandeld' }).eq('id', reportId)
   revalidatePath('/meldingen')
 }

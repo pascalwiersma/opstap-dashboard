@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { getCurrentUser } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { getAdminStats, getAdminChartData, getProvincieStats, getProvincieChartData } from '@/app/actions/dashboard'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { StatsCard } from './_components/stats-card'
 import { DagGrafiek } from './_components/dag-grafiek'
 import {
@@ -77,10 +78,8 @@ async function VertegenwoordigerDashboard({ province_id, province_name }: { prov
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role === 'marketing') redirect('/marketing')
+  if (!kan(user, 'overzicht', 'zien')) redirect(eersteToegestanePad(user))
 
-  const isAdmin = user.role === 'admin'
-  const isNational = user.role === 'national'
   const isProvincial = user.role === 'provincial'
 
   return (
@@ -88,13 +87,15 @@ export default async function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-display text-white">Dashboard</h1>
         <p className="text-gray-400 mt-1 text-sm">
-          {isAdmin && 'Globaal overzicht van OpStap'}
-          {isNational && 'Landelijk overzicht van OpStap'}
-          {isProvincial && `Overzicht voor ${user.province_name ?? 'jouw provincie'}`}
+          {isProvincial
+            ? `Overzicht voor ${user.province_name ?? 'jouw provincie'}`
+            : user.role === 'admin'
+              ? 'Globaal overzicht van OpStap'
+              : 'Landelijk overzicht van OpStap'}
         </p>
       </div>
 
-      {(isAdmin || isNational) && <AdminDashboard />}
+      {!isProvincial && <AdminDashboard />}
       {isProvincial && user.province_id && (
         <VertegenwoordigerDashboard province_id={user.province_id} province_name={user.province_name ?? null} />
       )}

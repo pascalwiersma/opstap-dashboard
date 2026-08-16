@@ -16,6 +16,7 @@ type Props = {
   onSave: (input: CityEventInput) => Promise<void>
   onDelete?: () => Promise<void>
   onClose: () => void
+  kanOpslaan?: boolean
 }
 
 const OPSTAP_ORANGE = '#f1a74e'
@@ -37,7 +38,7 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave, onDelete, onClose }: Props) {
+export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave, onDelete, onClose, kanOpslaan = true }: Props) {
   const locationType = event?.location_type ?? (polygon ? 'region' : 'point')
 
   const [name, setName] = useState(event?.name ?? '')
@@ -282,12 +283,14 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
             {deleting ? 'Verwijderen...' : 'Verwijderen'}
           </button>
         )}
+        {kanOpslaan && (
         <button onClick={handleSave} disabled={saving}
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
           style={{ backgroundColor: color }}>
           <Save className="w-4 h-4" />
           {saving ? 'Opslaan...' : 'Opslaan'}
         </button>
+        )}
       </div>
     </div>
   )

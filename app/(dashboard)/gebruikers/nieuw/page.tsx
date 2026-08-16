@@ -1,11 +1,15 @@
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
+import { getRolOpties } from '@/app/actions/rollen'
 import { NieuwGebruikerForm } from './_components/nieuw-gebruiker-form'
 import { UserPlus } from 'lucide-react'
 
 export default async function NieuwGebruikerPage() {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') redirect('/')
+  if (!user || !kan(user, 'gebruikers', 'toevoegen')) redirect(user ? eersteToegestanePad(user) : '/')
+
+  const rollen = await getRolOpties()
 
   return (
     <div className="p-8 w-full">
@@ -16,7 +20,7 @@ export default async function NieuwGebruikerPage() {
       <p className="text-gray-400 text-sm mb-8">
         De gebruiker logt in met dit telefoonnummer via SMS, optioneel met een wachtwoord, en daarna 2FA als dat is ingesteld.
       </p>
-      <NieuwGebruikerForm />
+      <NieuwGebruikerForm rollen={rollen} />
     </div>
   )
 }

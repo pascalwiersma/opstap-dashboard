@@ -67,11 +67,17 @@ export function UnifiedMap({
   initialEvents,
   userProvinceId,
   userProvince,
+  kanToevoegen,
+  kanBewerken,
+  kanVerwijderen,
 }: {
   initialVenues: Venue[]
   initialEvents: CityEvent[]
   userProvinceId?: string | null
   userProvince?: Province | null
+  kanToevoegen: boolean
+  kanBewerken: boolean
+  kanVerwijderen: boolean
 }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -342,7 +348,7 @@ export function UnifiedMap({
           dragMarker.current?.remove()
           updVenues(venuesRef.current, id)
           const el = makeDragEl(v.type)
-          dragMarker.current = new mapboxgl.Marker({ element: el, draggable: true })
+          dragMarker.current = new mapboxgl.Marker({ element: el, draggable: kanBewerken })
             .setLngLat([Number(v.lng), Number(v.lat)]).addTo(m)
           attachDragListener(dragMarker.current)
           setDraggedPos(null)
@@ -358,7 +364,7 @@ export function UnifiedMap({
           dragMarker.current?.remove()
           updEventPts(eventsRef.current, id)
           const el = makeDragEl(ev.color ?? EVENT_COLOR, true)
-          dragMarker.current = new mapboxgl.Marker({ element: el, draggable: true })
+          dragMarker.current = new mapboxgl.Marker({ element: el, draggable: kanBewerken })
             .setLngLat([Number(ev.lng), Number(ev.lat)]).addTo(m)
           attachDragListener(dragMarker.current)
           setDraggedPos(null)
@@ -417,7 +423,7 @@ export function UnifiedMap({
       )}
 
       {/* Toolbar links — venues & events */}
-      {!panel && (
+      {!panel && kanToevoegen && (
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
           <div className="flex flex-col gap-2">
               <button
@@ -525,12 +531,13 @@ export function UnifiedMap({
             dragMarker.current?.remove(); dragMarker.current = null
             setVenues(v => v.map(x => x.id === panel.venue.id ? { ...x, ...final } : x))
           }}
-          onDelete={async () => {
+          onDelete={kanVerwijderen ? async () => {
             if (panel.kind !== 'edit-venue') return
             await deleteVenue(panel.venue.id)
             dragMarker.current?.remove(); dragMarker.current = null
             setVenues(v => v.filter(x => x.id !== panel.venue.id))
-          }}
+          } : undefined}
+          kanOpslaan={kanBewerken}
           onClose={closePanel}
         />
       )}
@@ -564,12 +571,13 @@ export function UnifiedMap({
             dragMarker.current?.remove(); dragMarker.current = null
             setEvents(v => v.map(x => x.id === panel.event.id ? { ...x, ...final } : x))
           }}
-          onDelete={async () => {
+          onDelete={kanVerwijderen ? async () => {
             if (panel.kind !== 'edit-event') return
             await deleteCityEvent(panel.event.id)
             dragMarker.current?.remove(); dragMarker.current = null
             setEvents(v => v.filter(x => x.id !== panel.event.id))
-          }}
+          } : undefined}
+          kanOpslaan={kanBewerken}
           onClose={closePanel}
         />
       )}

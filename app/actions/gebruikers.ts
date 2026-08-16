@@ -1,9 +1,8 @@
 'use server'
 
 import { supabaseAdmin } from '@/lib/supabase'
-import { getCurrentUser } from '@/lib/supabase-server'
 import { voegNaamSamen } from '@/lib/naam'
-import type { DashboardRol } from '@/lib/dashboard-rollen'
+import { eisPermissie } from '@/lib/eis-permissie'
 import { revalidatePath } from 'next/cache'
 
 const MIN_WACHTWOORD = 8
@@ -12,16 +11,9 @@ export type Gebruiker = {
   id: string
   phone: string | null
   name: string | null
-  dashboard_role: DashboardRol
+  dashboard_role: string
+  dashboard_role_name: string
   totp_ingeschakeld: boolean
-}
-
-async function eisAdmin() {
-  const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') {
-    throw new Error('Geen toegang.')
-  }
-  return user
 }
 
 function normalizePhone(input: string): string | null {
@@ -59,21 +51,29 @@ async function totpIds(): Promise<Set<string>> {
   }))
 }
 
+async function rolNamen(): Promise<Map<string, string>> {
+  const { data, error } = await supabaseAdmin.from('dashboard_roles').select('slug, name')
+  if (error || !data) return new Map()
+  return new Map(data.map(r => [r.slug, r.name]))
+}
+
 function naarGebruiker(
   rij: { id: string; phone: string | null; name: string | null; dashboard_role: string },
   totp: Set<string>,
+  namen: Map<string, string>,
 ): Gebruiker {
   return {
     id: rij.id,
     phone: rij.phone,
     name: rij.name,
-    dashboard_role: rij.dashboard_role as DashboardRol,
+    dashboard_role: rij.dashboard_role,
+    dashboard_role_name: namen.get(rij.dashboard_role) ?? rij.dashboard_role,
     totp_ingeschakeld: totp.has(rij.id),
   }
 }
 
 export async function getGebruiker(id: string): Promise<Gebruiker | null> {
-  await eisAdmin()
+  await eisPermissie('gebruikers', 'zien')
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select('id, phone, name, dashboard_role')
@@ -82,11 +82,12 @@ export async function getGebruiker(id: string): Promise<Gebruiker | null> {
 
   if (error || !data?.dashboard_role) return null
   const totp = await totpIds()
-  return naarGebruiker(data, totp)
+  const namen = await rolNamen()
+  return naarGebruiker(data, totp, namen)
 }
 
 export async function getGebruikers(): Promise<Gebruiker[]> {
-  await eisAdmin()
+  await eisPermissie('gebruikers', 'zien')
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select('id, phone, name, dashboard_role')
@@ -95,18 +96,19 @@ export async function getGebruikers(): Promise<Gebruiker[]> {
 
   if (error) throw new Error(error.message)
   const totp = await totpIds()
-  return (data ?? []).map(rij => naarGebruiker(rij, totp))
+  const namen = await rolNamen()
+  return (data ?? []).map(rij => naarGebruiker(rij, totp, namen))
 }
 
 export async function addGebruiker(input: {
   voornaam: string
   achternaam: string
   phone: string
-  role: DashboardRol
+  role: string
   wachtwoord: string
   wachtwoordBevestiging: string
 }): Promise<string> {
-  await eisAdmin()
+  await eisPermissie('gebruikers', 'toevoegen')
   const normalized = normalizePhone(input.phone)
   if (!normalized) {
     throw new Error('Ongeldig telefoonnummer. Gebruik een Nederlands mobiel nummer, bijv. 06 12345678.')
@@ -150,11 +152,11 @@ export async function updateGebruiker(input: {
   voornaam: string
   achternaam: string
   phone: string
-  role: DashboardRol
+  role: string
   wachtwoord: string
   wachtwoordBevestiging: string
 }) {
-  await eisAdmin()
+  await eisPermissie('gebruikers', 'bewerken')
   const normalized = normalizePhone(input.phone)
   if (!normalized) {
     throw new Error('Ongeldig telefoonnummer. Gebruik een Nederlands mobiel nummer, bijv. 06 12345678.')
@@ -189,7 +191,7 @@ export async function updateGebruiker(input: {
 }
 
 export async function removeGebruiker(id: string) {
-  await eisAdmin()
+  await eisPermissie('gebruikers', 'verwijderen')
   const { error } = await supabaseAdmin
     .from('profiles')
     .update({ dashboard_role: null })
