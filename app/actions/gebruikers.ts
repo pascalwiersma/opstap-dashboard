@@ -34,7 +34,7 @@ function valideerWachtwoord(wachtwoord: string, bevestiging: string): string | n
   return null
 }
 
-export function valideerNieuwWachtwoord(wachtwoord: string, bevestiging: string): string | null {
+function valideerNieuwWachtwoord(wachtwoord: string, bevestiging: string): string | null {
   if (!wachtwoord) return 'Wachtwoord is verplicht.'
   return valideerWachtwoord(wachtwoord, bevestiging)
 }
