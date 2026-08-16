@@ -41,7 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/meldingen', label: 'Meldingen', icon: Inbox, roles: ['admin', 'national'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
     { href: '/interesses', label: 'Interesses', icon: Tags, roles: ['admin'] },
-    { href: '/beheerders', label: 'Vertegenwoordigers', icon: Users, roles: ['admin'] },
+    { href: '/gebruikers', label: 'Gebruikers', icon: Users, roles: ['admin'] },
   ].filter(item =>
     item.roles.includes(user.role) &&
     (!item.requiresProvincie || heeftProvincie)
