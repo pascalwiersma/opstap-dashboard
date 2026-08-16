@@ -18,7 +18,7 @@ export default async function GebruikersPage() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Users className="w-6 h-6 text-opstap-orange-400" />
-            <h1 className="text-2xl font-display text-white">Gebruikers</h1>
+            <h1 className="text-2xl font-display text-white">Dashboardtoegang</h1>
           </div>
           <p className="text-gray-400 text-sm">
             Dashboardtoegang beheren — {gebruikers.length} gebruiker{gebruikers.length !== 1 ? 's' : ''}

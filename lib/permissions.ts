@@ -84,6 +84,7 @@ export function eersteToegestanePad(user: PermissieGebruiker): string {
     { href: '/marketing', resource: 'marketing' },
     { href: '/meldingen', resource: 'meldingen' },
     { href: '/interesses', resource: 'interesses' },
+    { href: '/leden', resource: 'gebruikers' },
     { href: '/gebruikers', resource: 'gebruikers' },
     { href: '/matching', resource: 'matching' },
     { href: '/rollen', resource: 'rollen' },

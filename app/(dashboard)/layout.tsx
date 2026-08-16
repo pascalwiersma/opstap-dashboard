@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Map,
   Users,
+  UsersRound,
   LogOut,
   CalendarDays,
   Tags,
@@ -32,7 +33,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/marketing', label: 'Marketing', icon: Megaphone, resource: 'marketing' as const },
     { href: '/meldingen', label: 'Meldingen', icon: Inbox, resource: 'meldingen' as const },
     { href: '/interesses', label: 'Interesses', icon: Tags, resource: 'interesses' as const },
-    { href: '/gebruikers', label: 'Gebruikers', icon: Users, resource: 'gebruikers' as const },
+    { href: '/leden', label: 'Leden', icon: UsersRound, resource: 'gebruikers' as const },
+    { href: '/gebruikers', label: 'Dashboardtoegang', icon: Users, resource: 'gebruikers' as const },
     { href: '/matching', label: 'Matching algoritme', icon: Shuffle, resource: 'matching' as const },
     { href: '/rollen', label: 'Rollen', icon: Shield, resource: 'rollen' as const },
   ]).filter(item =>

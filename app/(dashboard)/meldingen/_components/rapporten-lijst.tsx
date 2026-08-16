@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Ban, CheckCircle, Clock, Flag, Shield, XCircle } from 'lucide-react'
 import type { Rapport, RapportStatus } from '@/app/actions/reports'
@@ -142,10 +143,14 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
                       {formatDatum(rapport.created_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <GebruikerCell naam={rapport.reporter.name} username={rapport.reporter.username} />
+                      <Link href={`/leden/${rapport.reporter.id}`} className="hover:opacity-80">
+                        <GebruikerCell naam={rapport.reporter.name} username={rapport.reporter.username} />
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <GebruikerCell naam={rapport.reported.name} username={rapport.reported.username} />
+                      <Link href={`/leden/${rapport.reported.id}`} className="hover:opacity-80">
+                        <GebruikerCell naam={rapport.reported.name} username={rapport.reported.username} />
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300 max-w-xs">
                       <p className="truncate">{rapport.reason}</p>
