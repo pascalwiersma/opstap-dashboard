@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { DashboardRol } from '@/app/actions/rollen'
-import { createRol, deleteRol, updateRol } from '@/app/actions/rollen'
+import { createRol, deleteRol, startRolVoorbeeld, updateRol } from '@/app/actions/rollen'
 import {
   ACTION_LABEL,
   ACTIONS,
@@ -13,7 +13,7 @@ import {
   type PermissieSleutel,
   type Resource,
 } from '@/lib/permissions'
-import { Loader2, Plus, Save, Trash2 } from 'lucide-react'
+import { Eye, Loader2, Plus, Save, Trash2 } from 'lucide-react'
 
 const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors'
 
@@ -26,11 +26,15 @@ export function RollenBeheer({
   kanToevoegen,
   kanBewerken,
   kanVerwijderen,
+  kanVoorbeeld,
+  eigenSlug,
 }: {
   initialRollen: DashboardRol[]
   kanToevoegen: boolean
   kanBewerken: boolean
   kanVerwijderen: boolean
+  kanVoorbeeld: boolean
+  eigenSlug: string
 }) {
   const router = useRouter()
   const [rollen, setRollen] = useState(initialRollen)
@@ -108,6 +112,22 @@ export function RollenBeheer({
     } catch (err) {
       setFout(err instanceof Error ? err.message : 'Opslaan mislukt.')
     } finally {
+      setBezig(false)
+    }
+  }
+
+  async function handleVoorbeeld() {
+    if (!gekozen || !kanVoorbeeld) return
+    setBezig(true)
+    setFout('')
+    try {
+      await startRolVoorbeeld(gekozen.slug)
+    } catch (err) {
+      const digest = err && typeof err === 'object' && 'digest' in err
+        ? String((err as { digest?: unknown }).digest)
+        : ''
+      if (digest.startsWith('NEXT_REDIRECT')) throw err
+      setFout(err instanceof Error ? err.message : 'Voorbeeld starten mislukt.')
       setBezig(false)
     }
   }
@@ -233,6 +253,17 @@ export function RollenBeheer({
               </table>
             </div>
             <div className="flex items-center justify-end gap-2">
+              {kanVoorbeeld && gekozen.slug !== eigenSlug && (
+                <button
+                  type="button"
+                  onClick={handleVoorbeeld}
+                  disabled={bezig}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl disabled:opacity-50"
+                >
+                  {bezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                  Inloggen als deze rol
+                </button>
+              )}
               {kanVerwijderen && !gekozen.is_system && (
                 <button
                   type="button"

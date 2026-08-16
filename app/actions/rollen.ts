@@ -2,8 +2,10 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import { eisPermissie } from '@/lib/eis-permissie'
-import { getCurrentUser } from '@/lib/supabase-server'
-import { kan } from '@/lib/permissions'
+import { PREVIEW_ROL_COOKIE, getCurrentUser } from '@/lib/supabase-server'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import {
   ACTIONS,
   ALLE_PERMISSIES,
@@ -190,4 +192,56 @@ export async function deleteRol(id: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/rollen')
   revalidatePath('/gebruikers')
+}
+
+function magRolVoorbeeld(user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>): boolean {
+  return user.echte_role === 'admin' || user.echte_permissions.has('rollen:bewerken')
+}
+
+export async function startRolVoorbeeld(slug: string): Promise<void> {
+  const user = await getCurrentUser()
+  if (!user || !magRolVoorbeeld(user)) throw new Error('Geen toegang.')
+
+  const { data: rol, error } = await supabaseAdmin
+    .from('dashboard_roles')
+    .select('slug, name')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!rol) throw new Error('Rol niet gevonden.')
+  if (rol.slug === user.echte_role) throw new Error('Dit is al je eigen rol.')
+
+  const jar = await cookies()
+  jar.set(PREVIEW_ROL_COOKIE, rol.slug, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 4,
+    secure: process.env.NODE_ENV === 'production',
+  })
+
+  const preview = await supabaseAdmin
+    .from('dashboard_roles')
+    .select('slug, dashboard_role_permissions(resource, action)')
+    .eq('slug', rol.slug)
+    .maybeSingle()
+
+  const rijen = (preview.data?.dashboard_role_permissions ?? []) as { resource: string; action: string }[]
+  const permissions = rol.slug === 'admin'
+    ? new Set(ALLE_PERMISSIES)
+    : new Set(rijen.map(p => `${p.resource}:${p.action}` as PermissieSleutel))
+
+  redirect(eersteToegestanePad({
+    role: rol.slug,
+    permissions,
+    preview_role: rol.slug,
+  }))
+}
+
+export async function stopRolVoorbeeld(): Promise<void> {
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+  const jar = await cookies()
+  jar.delete(PREVIEW_ROL_COOKIE)
+  redirect('/rollen')
 }

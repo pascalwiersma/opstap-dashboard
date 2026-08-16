@@ -68,11 +68,12 @@ export function legacyPermissies(slug: string): Set<PermissieSleutel> {
 export type PermissieGebruiker = {
   role: string
   permissions: ReadonlySet<PermissieSleutel>
+  preview_role?: string | null
 }
 
 export function kan(user: PermissieGebruiker | null | undefined, resource: Resource, action: Action): boolean {
   if (!user) return false
-  if (user.role === 'admin') return true
+  if (!user.preview_role && user.role === 'admin') return true
   return user.permissions.has(`${resource}:${action}`)
 }
 
