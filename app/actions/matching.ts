@@ -33,6 +33,7 @@ export type MatchingCronJob = {
   jobname: string
   schedule: string
   active: boolean
+  timezone: string
 }
 
 const DEFAULT_INSTELLINGEN: MatchingInstellingen = {
@@ -106,7 +107,10 @@ export async function getMatchingPagina(): Promise<{
 
   const cron: MatchingCronJob[] = cronRes.error || !cronRes.data
     ? []
-    : (cronRes.data as MatchingCronJob[])
+    : (cronRes.data as MatchingCronJob[]).map(j => ({
+        ...j,
+        timezone: j.timezone || 'Europe/Amsterdam',
+      }))
 
   return {
     instellingen,

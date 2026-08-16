@@ -119,8 +119,8 @@ export function MatchingInstellingenForm({
           })}
         </div>
         <p className="text-xs text-gray-500">
-          Op andere dagen draait match-users niet (cron + check in de functie). Attendance en
-          trust-scores blijven de ochtend ná een matchdag draaien.
+          Op andere dagen draait match-users niet. Attendance en trust blijven de ochtend ná
+          een matchdag draaien, allemaal op de Amsterdam-klok.
         </p>
       </fieldset>
 
@@ -175,7 +175,7 @@ export function MatchingInstellingenForm({
         </label>
       </div>
       <p className="text-xs text-gray-500">
-        Uren in Amsterdam. Cron gebruikt UTC (zomertijd: 2 uur eerder).
+        Alle tijden zijn Europe/Amsterdam, zomer- en wintertijd. De cron volgt die klok.
       </p>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

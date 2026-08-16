@@ -3,7 +3,7 @@ import type { MatchingCronJob, MatchingRun } from '@/app/actions/matching'
 const FUNCTIES: { naam: string; jobname: string; uitleg: string }[] = [
   { naam: 'match-users', jobname: 'match-users-dagelijks', uitleg: 'Maakt groepen van ingecheckte gebruikers' },
   { naam: 'finalize-matches', jobname: 'finalize-matches-dagelijks', uitleg: 'Bevestigt of annuleert voorstellen' },
-  { naam: 'stuur-herinnering', jobname: 'herinnering-dagelijks', uitleg: 'Push 15 minuten voor het matchen' },
+  { naam: 'stuur-herinnering', jobname: 'herinnering-dagelijks', uitleg: 'Push vóór het matchen' },
   { naam: 'stuur-attendance-reminder', jobname: 'stuur-attendance-reminder', uitleg: 'Aanwezigheid de ochtend erna' },
   { naam: 'bereken-trust-scores', jobname: 'bereken-trust-scores', uitleg: 'Trust scores na de matchavond' },
 ]
@@ -37,9 +37,8 @@ export function MatchingStatus({ runs, cron }: { runs: MatchingRun[]; cron: Matc
     <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
       <h2 className="text-sm font-semibold text-white mb-1">Status van de edge functions</h2>
       <p className="text-xs text-gray-500 mb-5">
-        Planning komt uit pg_cron. Laatste run komt uit <code className="text-gray-400">matching_runs</code>
-        — de functies schrijven zelf succes, skip of fout. Supabase-function-logs zijn vanaf hier
-        niet querybaar.
+        Planning in Europe/Amsterdam, uit <code className="text-gray-400">matching_settings</code>.
+        Laatste run komt uit <code className="text-gray-400">matching_runs</code>.
       </p>
 
       <div className="overflow-x-auto">
@@ -68,7 +67,7 @@ export function MatchingStatus({ runs, cron }: { runs: MatchingRun[]; cron: Matc
                       <>
                         <p className="font-mono text-xs">{job.schedule}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {job.active ? 'actief' : 'gepauzeerd'} · UTC
+                          {job.active ? 'actief' : 'gepauzeerd'} · {job.timezone || 'Europe/Amsterdam'}
                         </p>
                       </>
                     ) : (
