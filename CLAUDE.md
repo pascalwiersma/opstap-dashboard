@@ -3,8 +3,8 @@
 # OpStap Dashboard — Claude Code instructies
 
 ## Project context
-OpStap Dashboard is het interne admin-dashboard voor OpStap: beheer van steden,
-provincies, venues, events, meeting areas, beheerders en rapporten.
+OpStap Dashboard is het interne admin-dashboard voor OpStap: beheer van
+venues, events, beheerders en rapporten.
 Gebouwd door Pascal Wiersma via Pascal Services, Groningen.
 Lanceringsdatum app: 1 augustus 2026.
 
@@ -27,7 +27,7 @@ Lanceringsdatum app: 1 augustus 2026.
 - Framework: Next.js 16 (App Router), TypeScript — zie AGENTS.md, dit is niet de
   Next.js uit trainingsdata, controleer `node_modules/next/dist/docs/` bij twijfel
 - Database: Supabase (Postgres, RLS) — zelfde project als de app
-- Kaart: Mapbox GL JS + Mapbox GL Draw (zone-tekenen voor meeting areas)
+- Kaart: Mapbox GL JS (venues en events)
 - Auth: Supabase Auth (login + wachtwoord-instellen voor beheerders)
 - Styling: Tailwind CSS v4
 - Grafieken: Recharts
@@ -74,11 +74,8 @@ Lanceringsdatum app: 1 augustus 2026.
   afwijken van `develop` — dat triggert de ingebouwde workflow-validatiebeveiliging.
 
 ## Belangrijke bestanden
-- `app/(dashboard)/steden/` — steden beheer
-- `app/(dashboard)/provincies/` — provincies beheer
 - `app/(dashboard)/venues/` — venue beheer
 - `app/(dashboard)/events-beheer/` en `app/(dashboard)/events/` — events beheer
-- `app/(dashboard)/meeting-areas/` — meeting area's en zones (kaart-gebaseerd)
 - `app/(dashboard)/rapporten/` — gebruikersrapportages
 - `app/(dashboard)/beheerders/` — beheerdersaccounts
 - `app/(auth)/login/` en `app/(auth)/wachtwoord-instellen/` — beheerder-authenticatie
