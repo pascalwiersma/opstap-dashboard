@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { getRollen } from '@/app/actions/rollen'
 import { kan } from '@/lib/permissions'
 import { RollenBeheer } from './_components/rollen-beheer'
-import { Shield } from 'lucide-react'
+import { Shield, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function RollenPage() {
   const user = await getCurrentUser()
@@ -13,6 +14,10 @@ export default async function RollenPage() {
 
   return (
     <div className="p-8 w-full">
+      <Link href="/gebruikers" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-6">
+        <ArrowLeft className="w-4 h-4" />
+        Dashboardtoegang
+      </Link>
       <div className="flex items-center gap-3 mb-2">
         <Shield className="w-6 h-6 text-opstap-orange-400" />
         <h1 className="text-2xl font-display text-white">Rollen</h1>
