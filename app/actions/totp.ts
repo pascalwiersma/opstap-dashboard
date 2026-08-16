@@ -154,6 +154,22 @@ export async function disableTotp(userId: string): Promise<void> {
   revalidateGebruiker(userId)
 }
 
+export async function disableEigenTotp(): Promise<void> {
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Niet ingelogd.')
+  const { error } = await supabaseAdmin
+    .from('dashboard_totp')
+    .delete()
+    .eq('user_id', user.id)
+  if (error) throw new Error(error.message)
+}
+
+export async function startEigenTotpWissel(): Promise<void> {
+  const user = await getCurrentUser()
+  if (!user) throw new Error('Niet ingelogd.')
+  await enrollmentVoor(user.id, user.phone || user.name || user.id)
+}
+
 export async function startTotpSetup(): Promise<TotpEnrollment | { alIngeschakeld: true }> {
   const user = await getCurrentUser()
   if (!user) throw new Error('Niet ingelogd.')

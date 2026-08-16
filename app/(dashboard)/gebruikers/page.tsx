@@ -36,6 +36,7 @@ export default async function GebruikersPage() {
       </div>
       <GebruikersLijst
         initialGebruikers={gebruikers}
+        huidigeUserId={user.id}
         kanBewerken={kan(user, 'gebruikers', 'bewerken')}
         kanVerwijderen={kan(user, 'gebruikers', 'verwijderen')}
       />
