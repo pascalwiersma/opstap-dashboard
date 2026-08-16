@@ -307,7 +307,7 @@ function LoginForm() {
           {step === 'totp' && (
             <form onSubmit={handleTotp} className="space-y-4">
               <p className="text-sm text-gray-400">
-                Voer de 6-cijferige code uit je authenticator of Dashlane in.
+                Voer de 6-cijferige code uit je authenticator in.
               </p>
 
               <div>
