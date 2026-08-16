@@ -70,7 +70,6 @@ export function EventPanel({ mode, event, locationSnap, polygon, dragPos, onSave
         lat: locationType === 'point' ? (lat ?? null) : null,
         lng: locationType === 'point' ? (lng ?? null) : null,
         polygon: locationType === 'region' ? (poly ?? null) : null,
-        radius_km: event?.radius_km ?? null,
         start_date: startDate,
         end_date: endDate,
         color,

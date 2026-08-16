@@ -360,12 +360,7 @@ export function EventMap({ initialEvents }: { initialEvents: CityEvent[] }) {
       input.location_type === 'point' && pos
         ? { ...input, lat: pos.lat, lng: pos.lng }
         : input
-    await createCityEvent(finalInput)
-    const newEvent: CityEvent = {
-      id: crypto.randomUUID(),
-      ...finalInput,
-      created_at: new Date().toISOString(),
-    }
+    const newEvent = await createCityEvent(finalInput)
     dragMarker.current?.remove()
     dragMarker.current = null
     setEvents(v => [...v, newEvent])
