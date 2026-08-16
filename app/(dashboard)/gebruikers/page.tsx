@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/supabase-server'
 import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import { GebruikersLijst } from './_components/gebruikers-lijst'
-import { UserPlus, Users } from 'lucide-react'
+import { UserPlus, Users, Shield } from 'lucide-react'
 
 export default async function GebruikersPage() {
   const user = await getCurrentUser()
@@ -24,15 +24,26 @@ export default async function GebruikersPage() {
             Dashboardtoegang beheren — {gebruikers.length} gebruiker{gebruikers.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {kan(user, 'gebruikers', 'toevoegen') && (
-          <Link
-            href="/gebruikers/nieuw"
-            className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            Toevoegen
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          {kan(user, 'rollen', 'zien') && (
+            <Link
+              href="/rollen"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 rounded-xl text-sm font-medium transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              Rollen
+            </Link>
+          )}
+          {kan(user, 'gebruikers', 'toevoegen') && (
+            <Link
+              href="/gebruikers/nieuw"
+              className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Toevoegen
+            </Link>
+          )}
+        </div>
       </div>
       <GebruikersLijst
         initialGebruikers={gebruikers}

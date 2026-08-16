@@ -14,7 +14,6 @@ import {
   Inbox,
   Megaphone,
   Shuffle,
-  Shield,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
@@ -36,7 +35,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/leden', label: 'Leden', icon: UsersRound, resource: 'gebruikers' as const },
     { href: '/gebruikers', label: 'Dashboardtoegang', icon: Users, resource: 'gebruikers' as const },
     { href: '/matching', label: 'Matching algoritme', icon: Shuffle, resource: 'matching' as const },
-    { href: '/rollen', label: 'Rollen', icon: Shield, resource: 'rollen' as const },
   ]).filter(item =>
     kan(user, item.resource, 'zien') &&
     (!('requiresProvincie' in item) || !item.requiresProvincie || heeftProvincie)
