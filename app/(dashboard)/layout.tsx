@@ -12,6 +12,7 @@ import {
   Tags,
   Inbox,
   Megaphone,
+  Shuffle,
   Shield,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -32,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/meldingen', label: 'Meldingen', icon: Inbox, resource: 'meldingen' as const },
     { href: '/interesses', label: 'Interesses', icon: Tags, resource: 'interesses' as const },
     { href: '/gebruikers', label: 'Gebruikers', icon: Users, resource: 'gebruikers' as const },
+    { href: '/matching', label: 'Matching algoritme', icon: Shuffle, resource: 'matching' as const },
     { href: '/rollen', label: 'Rollen', icon: Shield, resource: 'rollen' as const },
   ]).filter(item =>
     kan(user, item.resource, 'zien') &&

@@ -6,6 +6,7 @@ export const RESOURCES = [
   'gebruikers',
   'meldingen',
   'marketing',
+  'matching',
   'rollen',
 ] as const
 
@@ -23,6 +24,7 @@ export const RESOURCE_LABEL: Record<Resource, string> = {
   gebruikers: 'Gebruikers',
   meldingen: 'Meldingen',
   marketing: 'Marketing',
+  matching: 'Matching',
   rollen: 'Rollen',
 }
 
@@ -83,6 +85,7 @@ export function eersteToegestanePad(user: PermissieGebruiker): string {
     { href: '/meldingen', resource: 'meldingen' },
     { href: '/interesses', resource: 'interesses' },
     { href: '/gebruikers', resource: 'gebruikers' },
+    { href: '/matching', resource: 'matching' },
     { href: '/rollen', resource: 'rollen' },
   ]
   return volgorde.find(item => kan(user, item.resource, 'zien'))?.href ?? '/login?error=unauthorized'
