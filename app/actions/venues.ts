@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { sanitizeOmschrijving } from '@/lib/sanitize-omschrijving'
 
 function adminClient() {
   return createClient(
@@ -97,7 +98,11 @@ export async function getVenues(province_id?: string): Promise<Venue[]> {
 export async function createVenue(input: VenueInput): Promise<Venue> {
   const { data, error } = await adminClient()
     .from('venues')
-    .insert({ ...input, location: `POINT(${input.lng} ${input.lat})` })
+    .insert({
+      ...input,
+      description: sanitizeOmschrijving(input.description),
+      location: `POINT(${input.lng} ${input.lat})`,
+    })
     .select('id, name, lat, lng, type, description, photo_url, active, opening_hours, created_at')
     .single()
 
@@ -111,6 +116,7 @@ export async function updateVenue(id: string, input: VenueInput) {
     .from('venues')
     .update({
       ...input,
+      description: sanitizeOmschrijving(input.description),
       location: `POINT(${input.lng} ${input.lat})`,
     })
     .eq('id', id)
