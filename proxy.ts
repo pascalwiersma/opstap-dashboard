@@ -57,6 +57,26 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
 
+  const { data: totp } = await adminClient
+    .from('dashboard_totp')
+    .select('verified_session_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (totp) {
+    const { data: claimsData } = await supabase.auth.getClaims()
+    const sessionId = typeof claimsData?.claims?.session_id === 'string'
+      ? claimsData.claims.session_id
+      : null
+    const totpPending = !sessionId || totp.verified_session_id !== sessionId
+    if (totpPending) {
+      if (pathname === '/login') return supabaseResponse
+      const url = new URL('/login', request.url)
+      url.searchParams.set('stap', 'totp')
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Ingelogd met toegang op login-pagina → naar dashboard
   if (pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
