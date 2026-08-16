@@ -10,7 +10,7 @@ import { createVenue, updateVenue, deleteVenue } from '@/app/actions/venues'
 import { createCityEvent, updateCityEvent, deleteCityEvent } from '@/app/actions/city-events'
 import { VenuePanel } from '../../venues/_components/venue-panel'
 import { EventPanel } from '../../events/_components/event-panel'
-import { MapPin, CalendarDays, Hexagon, X, Check, Layers } from 'lucide-react'
+import { MapPin, CalendarDays, Layers } from 'lucide-react'
 import { pointInPolygon } from '@/lib/geo'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
@@ -23,13 +23,12 @@ const VENUE_COLORS: Record<string, string> = {
 }
 const EVENT_COLOR = '#f1a74e'
 
-type AddMode = 'venue' | 'event-point' | 'event-region' | null
+type AddMode = 'venue' | 'event-point' | null
 
 type PanelState =
   | { kind: 'create-venue'; lat: number; lng: number }
   | { kind: 'edit-venue'; venue: Venue }
   | { kind: 'create-event-point'; lat: number; lng: number }
-  | { kind: 'create-event-region'; polygon: [number, number][] }
   | { kind: 'edit-event'; event: CityEvent }
   | null
 
@@ -61,54 +60,6 @@ function eventPointsGeoJSON(events: CityEvent[], excludeId?: string) {
   }
 }
 
-function eventRegionsGeoJSON(events: CityEvent[], excludeId?: string) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: events
-      .filter(e => e.location_type === 'region' && e.polygon && e.polygon.length >= 3 && e.id !== excludeId)
-      .map(e => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Polygon' as const,
-          coordinates: [[...e.polygon!, e.polygon![0]]],
-        },
-        properties: { id: e.id, color: e.color ?? EVENT_COLOR },
-      })),
-  }
-}
-
-function drawingGeoJSON(pts: [number, number][]) {
-  if (pts.length === 0) return { type: 'FeatureCollection' as const, features: [] }
-  const features: GeoJsonFeature[] = []
-
-  if (pts.length >= 2)
-    features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} })
-
-  if (pts.length >= 3) {
-    features.push({
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: [pts[pts.length - 1], pts[0]] },
-      properties: {},
-    })
-    features.push({
-      type: 'Feature',
-      geometry: { type: 'Polygon', coordinates: [[...pts, pts[0]]] },
-      properties: {},
-    })
-  }
-
-  for (const pt of pts)
-    features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pt }, properties: {} })
-
-  return { type: 'FeatureCollection' as const, features }
-}
-
-interface GeoJsonFeature { type: 'Feature'; id?: string | number; geometry: GeoJsonGeom; properties: Record<string, unknown> | null }
-type GeoJsonGeom =
-  | { type: 'Point'; coordinates: number[] }
-  | { type: 'LineString'; coordinates: number[][] }
-  | { type: 'Polygon'; coordinates: number[][][] }
-
 // ---
 
 export function UnifiedMap({
@@ -131,23 +82,20 @@ export function UnifiedMap({
   const [panel, setPanel] = useState<PanelState>(null)
   const [addMode, setAddMode] = useState<AddMode>(null)
   const [osmVisible, setOsmVisible] = useState(true)
-  const [drawingPts, setDrawingPts] = useState<[number, number][]>([])
   const [draggedPos, setDraggedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [buitenGrens, setBuitenGrens] = useState(false)
 
   const panelRef = useRef<PanelState>(null)
   const addModeRef = useRef<AddMode>(null)
-  const drawingPtsRef = useRef<[number, number][]>([])
   const venuesRef = useRef(venues)
   const eventsRef = useRef(events)
 
   useEffect(() => {
     panelRef.current = panel
     addModeRef.current = addMode
-    drawingPtsRef.current = drawingPts
     venuesRef.current = venues
     eventsRef.current = events
-  }, [panel, addMode, drawingPts, venues, events])
+  }, [panel, addMode, venues, events])
 
   const updVenues = useCallback((v: Venue[], ex?: string) => {
     const src = map.current?.getSource('venues') as mapboxgl.GeoJSONSource | undefined
@@ -159,34 +107,15 @@ export function UnifiedMap({
     src?.setData(eventPointsGeoJSON(e, ex))
   }, [])
 
-  const updEventRegs = useCallback((e: CityEvent[], ex?: string) => {
-    const src = map.current?.getSource('event-regions') as mapboxgl.GeoJSONSource | undefined
-    src?.setData(eventRegionsGeoJSON(e, ex))
-  }, [])
-
-  const updDrawing = useCallback((pts: [number, number][]) => {
-    const src = map.current?.getSource('drawing') as mapboxgl.GeoJSONSource | undefined
-    src?.setData(drawingGeoJSON(pts))
-  }, [])
-
   const closePanel = useCallback(() => {
     dragMarker.current?.remove()
     dragMarker.current = null
     setPanel(null)
     setAddMode(null)
-    setDrawingPts([])
     setDraggedPos(null)
-    updDrawing([])
     updVenues(venuesRef.current)
     updEventPts(eventsRef.current)
-    updEventRegs(eventsRef.current)
-  }, [updVenues, updEventPts, updEventRegs, updDrawing])
-
-  const cancelDraw = useCallback(() => {
-    setAddMode(null)
-    setDrawingPts([])
-    updDrawing([])
-  }, [updDrawing])
+  }, [updVenues, updEventPts])
 
   const provincePoly = userProvince?.polygon ?? null
 
@@ -231,10 +160,8 @@ export function UnifiedMap({
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
 
     m.on('load', () => {
-      m.addSource('event-regions', { type: 'geojson', data: eventRegionsGeoJSON(eventsRef.current) })
       m.addSource('event-points', { type: 'geojson', data: eventPointsGeoJSON(eventsRef.current) })
       m.addSource('venues', { type: 'geojson', data: venueGeoJSON(venuesRef.current) })
-      m.addSource('drawing', { type: 'geojson', data: drawingGeoJSON([]) })
 
       // OSM referentielaag
       m.addSource('osm-horeca', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
@@ -326,48 +253,6 @@ export function UnifiedMap({
       }
 
       m.addLayer({
-        id: 'event-regions-fill',
-        type: 'fill',
-        source: 'event-regions',
-        paint: {
-          'fill-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
-          'fill-opacity': 0.15,
-        },
-      })
-      m.addLayer({
-        id: 'event-regions-outline',
-        type: 'line',
-        source: 'event-regions',
-        paint: {
-          'line-color': ['coalesce', ['get', 'color'], EVENT_COLOR] as unknown as string,
-          'line-width': 2.5,
-          'line-opacity': 0.9,
-        },
-      })
-
-      m.addLayer({
-        id: 'drawing-fill',
-        type: 'fill',
-        source: 'drawing',
-        filter: ['==', ['geometry-type'], 'Polygon'],
-        paint: { 'fill-color': EVENT_COLOR, 'fill-opacity': 0.12 },
-      })
-      m.addLayer({
-        id: 'drawing-line',
-        type: 'line',
-        source: 'drawing',
-        filter: ['==', ['geometry-type'], 'LineString'],
-        paint: { 'line-color': EVENT_COLOR, 'line-width': 1.5, 'line-dasharray': [3, 2] },
-      })
-      m.addLayer({
-        id: 'drawing-dots',
-        type: 'circle',
-        source: 'drawing',
-        filter: ['==', ['geometry-type'], 'Point'],
-        paint: { 'circle-radius': 5, 'circle-color': EVENT_COLOR, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' },
-      })
-
-      m.addLayer({
         id: 'venues-pins',
         type: 'circle',
         source: 'venues',
@@ -397,7 +282,7 @@ export function UnifiedMap({
         },
       })
 
-      const hoverLayers = ['venues-pins', 'event-pins', 'event-regions-fill']
+      const hoverLayers = ['venues-pins', 'event-pins']
       hoverLayers.forEach(layer => {
         m.on('mouseenter', layer, () => {
           if (!addModeRef.current) m.getCanvas().style.cursor = 'pointer'
@@ -419,16 +304,6 @@ export function UnifiedMap({
             return true
           }
           return false
-        }
-
-        if (mode === 'event-region') {
-          const pt: [number, number] = [e.lngLat.lng, e.lngLat.lat]
-          if (buiten(pt[0], pt[1])) return
-          const next = [...drawingPtsRef.current, pt]
-          drawingPtsRef.current = next
-          setDrawingPts(next)
-          updDrawing(next)
-          return
         }
 
         if (mode === 'venue') {
@@ -491,15 +366,6 @@ export function UnifiedMap({
           return
         }
 
-        const regionHits = m.queryRenderedFeatures(e.point, {
-          layers: ['event-regions-fill', 'event-regions-outline'],
-        })
-        if (regionHits.length > 0) {
-          const id = regionHits[0].properties?.id as string
-          const ev = eventsRef.current.find(x => x.id === id)
-          if (!ev) return
-          setPanel({ kind: 'edit-event', event: ev })
-        }
       })
     })
 
@@ -509,7 +375,7 @@ export function UnifiedMap({
       m.remove()
       map.current = null
     }
-  }, [updVenues, updEventPts, updEventRegs, updDrawing])
+  }, [updVenues, updEventPts])
 
   // Sync venue/event sources
   useEffect(() => {
@@ -517,8 +383,7 @@ export function UnifiedMap({
     const exEvent = panelRef.current?.kind === 'edit-event' ? panelRef.current.event.id : undefined
     updVenues(venues, exVenue)
     updEventPts(events, exEvent)
-    updEventRegs(events)
-  }, [venues, events, updVenues, updEventPts, updEventRegs])
+  }, [venues, events, updVenues, updEventPts])
 
   // Cursor
   useEffect(() => {
@@ -532,14 +397,6 @@ export function UnifiedMap({
     return { lat, lng }
   }
 
-  function finishRegion() {
-    if (drawingPts.length < 3) return
-    setPanel({ kind: 'create-event-region', polygon: drawingPts })
-    setAddMode(null)
-    setDrawingPts([])
-    updDrawing([])
-  }
-
   useEffect(() => {
     const m = map.current
     if (!m || !m.isStyleLoaded()) return
@@ -547,9 +404,6 @@ export function UnifiedMap({
     if (m.getLayer('osm-horeca-pins')) m.setLayoutProperty('osm-horeca-pins', 'visibility', vis)
     if (m.getLayer('osm-horeca-labels')) m.setLayoutProperty('osm-horeca-labels', 'visibility', vis)
   }, [osmVisible])
-
-  const isDrawing = addMode === 'event-region'
-  const canFinish = drawingPts.length >= 3
 
   return (
     <div className="relative flex h-full w-full">
@@ -565,8 +419,7 @@ export function UnifiedMap({
       {/* Toolbar links — venues & events */}
       {!panel && (
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-          {!isDrawing ? (
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
               <button
                 onClick={() => setAddMode(m => m === 'venue' ? null : 'venue')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
@@ -610,59 +463,7 @@ export function UnifiedMap({
                 <CalendarDays className="w-4 h-4" />
                 {addMode === 'event-point' ? 'Klik op de kaart...' : 'Event punt'}
               </button>
-
-              <button
-                onClick={() => setAddMode('event-region')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all bg-gray-900 text-gray-200 hover:bg-gray-800 border border-gray-700"
-              >
-                <Hexagon className="w-4 h-4" />
-                Regio tekenen
-              </button>
-            </div>
-          ) : (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-lg p-3 flex flex-col gap-2 min-w-52">
-              <p className="text-xs text-gray-400 font-medium">Regio tekenen</p>
-              <p className="text-xs text-gray-500">
-                {drawingPts.length === 0
-                  ? 'Klik op de kaart om punten te plaatsen'
-                  : drawingPts.length < 3
-                  ? `${drawingPts.length} punt${drawingPts.length === 1 ? '' : 'en'} — minimaal 3 nodig`
-                  : `${drawingPts.length} punten — klaar om af te ronden`}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const next = drawingPts.slice(0, -1)
-                    setDrawingPts(next)
-                    updDrawing(next)
-                  }}
-                  disabled={drawingPts.length === 0}
-                  className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors"
-                >
-                  Ongedaan
-                </button>
-                <button
-                  onClick={cancelDraw}
-                  className="p-1.5 rounded-lg bg-gray-800 border border-gray-700 text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <button
-                onClick={finishRegion}
-                disabled={!canFinish}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  canFinish
-                    ? 'text-white'
-                    : 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
-                }`}
-                style={canFinish ? { backgroundColor: EVENT_COLOR } : {}}
-              >
-                <Check className="w-4 h-4" />
-                Regio afronden
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -689,10 +490,6 @@ export function UnifiedMap({
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full border border-white/20" style={{ background: EVENT_COLOR }} />
           <span>Evenement</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-8 h-3 rounded border" style={{ background: `${EVENT_COLOR}25`, borderColor: EVENT_COLOR }} />
-          <span>Regio</span>
         </div>
       </div>
 
@@ -748,18 +545,6 @@ export function UnifiedMap({
             const final = input.location_type === 'point' && pos ? { ...input, lat: pos.lat, lng: pos.lng } : input
             const ne = await createCityEvent({ ...final, province_id: userProvinceId ?? null })
             dragMarker.current?.remove(); dragMarker.current = null
-            setEvents(v => [...v, ne])
-          }}
-          onClose={closePanel}
-        />
-      )}
-      {panel?.kind === 'create-event-region' && (
-        <EventPanel
-          key="create-event-region"
-          mode="create"
-          polygon={panel.polygon}
-          onSave={async (input: CityEventInput) => {
-            const ne = await createCityEvent({ ...input, province_id: userProvinceId ?? null })
             setEvents(v => [...v, ne])
           }}
           onClose={closePanel}
