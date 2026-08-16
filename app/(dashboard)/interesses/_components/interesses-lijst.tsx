@@ -1,13 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2, Pencil, Plus, X, Save, Loader2 } from 'lucide-react'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MeasuringStrategy,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { Plus, X, Save, Loader2 } from 'lucide-react'
 import type { InterestCategorie, InterestCategorieInput, InterestTag, InterestTagInput } from '@/app/actions/interests'
 import {
   createInterestCategorie, updateInterestCategorie, deleteInterestCategorie,
-  createInterestTag, updateInterestTag, deleteInterestTag,
+  createInterestTag, updateInterestTag, deleteInterestTag, herordenInterestTags,
 } from '@/app/actions/interests'
+import {
+  gesorteerdInCategorie,
+  herschikBinnenCategorie,
+  verplaatsNaarCategorie,
+  volgordeWijzigingen,
+} from '@/lib/interesse-volgorde'
+import {
+  TAG_PREFIX,
+  isCatDndId,
+  isTagDndId,
+  rawDndId,
+  vindCategorieVanSleepId,
+} from './interesse-dnd'
+import { InteresseCategorieKaart } from './interesse-categorie-kaart'
+import { InteresseTagOverlay } from './interesse-tag-rij'
 
 type CategorieForm = { name: string; sort_order: string }
 type TagForm = { category_id: string; label: string; emoji: string; sort_order: string; active: boolean }
@@ -27,7 +56,14 @@ export function InteressesLijst({
 }) {
   const [categorieen, setCategorieen] = useState(initialCategorieen)
   const [tags, setTags] = useState(initialTags)
+  const [actieveTag, setActieveTag] = useState<InterestTag | null>(null)
+  const snapshotRef = useRef<InterestTag[]>(initialTags)
+  const tagsRef = useRef<InterestTag[]>(initialTags)
   const router = useRouter()
+
+  useEffect(() => {
+    tagsRef.current = tags
+  }, [tags])
 
   const [catModalOpen, setCatModalOpen] = useState(false)
   const [catEditId, setCatEditId] = useState<string | null>(null)
@@ -39,6 +75,11 @@ export function InteressesLijst({
 
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   function openNieuweCategorie() {
     setCatEditId(null)
@@ -96,8 +137,9 @@ export function InteressesLijst({
   }
 
   function openNieuweTag(categoryId: string) {
+    const aantal = tags.filter(t => t.category_id === categoryId).length
     setTagEditId(null)
-    setTagForm(legeTag(categoryId))
+    setTagForm({ ...legeTag(categoryId), sort_order: String(aantal + 1) })
     setFout(null)
     setTagModalOpen(true)
   }
@@ -170,15 +212,105 @@ export function InteressesLijst({
     }
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    snapshotRef.current = tags
+    if (!isTagDndId(event.active.id)) return
+    const tagId = rawDndId(event.active.id, TAG_PREFIX)
+    setActieveTag(tags.find(t => t.id === tagId) ?? null)
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event
+    if (!over || !isTagDndId(active.id)) return
+
+    const tagId = rawDndId(active.id, TAG_PREFIX)
+    setTags(prev => {
+      const fromCat = vindCategorieVanSleepId(active.id, prev)
+      const toCat = vindCategorieVanSleepId(over.id, prev)
+      if (!fromCat || !toCat || fromCat === toCat) return prev
+
+      const dest = gesorteerdInCategorie(prev, toCat).filter(t => t.id !== tagId)
+      let toIndex = dest.length
+      if (isTagDndId(over.id)) {
+        const overTagId = rawDndId(over.id, TAG_PREFIX)
+        const overIndex = dest.findIndex(t => t.id === overTagId)
+        const isBelow = Boolean(
+          active.rect.current.translated
+          && active.rect.current.translated.top > over.rect.top + over.rect.height,
+        )
+        toIndex = overIndex < 0 ? dest.length : overIndex + (isBelow ? 1 : 0)
+      }
+      const next = verplaatsNaarCategorie(prev, tagId, toCat, toIndex)
+      tagsRef.current = next
+      return next
+    })
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActieveTag(null)
+    if (!over || !isTagDndId(active.id)) return
+
+    const tagId = rawDndId(active.id, TAG_PREFIX)
+    const current = tagsRef.current
+    const next = (() => {
+      const fromCat = vindCategorieVanSleepId(active.id, current)
+      const toCat = vindCategorieVanSleepId(over.id, current)
+      if (!fromCat || !toCat) return current
+      if (fromCat === toCat && isTagDndId(over.id)) {
+        const ids = gesorteerdInCategorie(current, fromCat).map(t => t.id)
+        return herschikBinnenCategorie(
+          current,
+          fromCat,
+          ids.indexOf(tagId),
+          ids.indexOf(rawDndId(over.id, TAG_PREFIX)),
+        )
+      }
+      if (fromCat !== toCat) {
+        const dest = gesorteerdInCategorie(current, toCat).filter(t => t.id !== tagId)
+        const toIndex = isCatDndId(over.id)
+          ? dest.length
+          : Math.max(0, dest.findIndex(t => t.id === rawDndId(over.id, TAG_PREFIX)))
+        return verplaatsNaarCategorie(current, tagId, toCat, toIndex)
+      }
+      return current
+    })()
+    tagsRef.current = next
+
+    setTags(next)
+    const updates = volgordeWijzigingen(snapshotRef.current, next)
+    if (updates.length === 0) return
+
+    void herordenInterestTags(updates)
+      .then(() => { router.refresh() })
+      .catch(e => {
+        tagsRef.current = snapshotRef.current
+        setTags(snapshotRef.current)
+        alert(e instanceof Error ? e.message : 'Volgorde opslaan mislukt.')
+      })
+  }
+
+  function handleDragCancel() {
+    setActieveTag(null)
+    tagsRef.current = snapshotRef.current
+    setTags(snapshotRef.current)
+  }
+
   const sortedCategorieen = [...categorieen].sort((a, b) => a.sort_order - b.sort_order)
 
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-gray-400 text-sm">
-          {categorieen.length} categorie{categorieen.length !== 1 ? 'ën' : ''}, {tags.length} tag{tags.length !== 1 ? 's' : ''}
-        </p>
+        <div>
+          <p className="text-gray-400 text-sm">
+            {categorieen.length} categorie{categorieen.length !== 1 ? 'ën' : ''}, {tags.length} tag{tags.length !== 1 ? 's' : ''}
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            Sleep een tag om de volgorde te wijzigen, of naar een andere categorie.
+          </p>
+        </div>
         <button
+          type="button"
           onClick={openNieuweCategorie}
           className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
@@ -192,95 +324,36 @@ export function InteressesLijst({
           Nog geen categorieën — voeg er een toe.
         </div>
       ) : (
-        <div className="space-y-6">
-          {sortedCategorieen.map(cat => {
-            const catTags = tags
-              .filter(t => t.category_id === cat.id)
-              .sort((a, b) => a.sort_order - b.sort_order)
-            return (
-              <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-800">
-                  <div className="flex items-center gap-2.5">
-                    <h2 className="text-white font-semibold text-sm">{cat.name}</h2>
-                    <span className="text-xs text-gray-500">{catTags.length} tag{catTags.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => openNieuweTag(cat.id)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-opstap-orange-300 hover:text-white hover:bg-opstap-orange-600/20 rounded-lg transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Tag toevoegen
-                    </button>
-                    <button
-                      onClick={() => openBewerkCategorie(cat)}
-                      className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                      title="Categorie bewerken"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleVerwijderCategorie(cat)}
-                      className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                      title="Categorie verwijderen"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {catTags.length === 0 ? (
-                  <div className="px-5 py-6 text-center text-gray-500 text-sm">
-                    Nog geen tags in deze categorie.
-                  </div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <tbody className="divide-y divide-gray-800">
-                      {catTags.map(tag => (
-                        <tr key={tag.id} className="hover:bg-gray-800/40 transition-colors">
-                          <td className="px-5 py-3 w-10 text-lg">{tag.emoji}</td>
-                          <td className="px-5 py-3 text-white font-medium">{tag.label}</td>
-                          <td className="px-5 py-3 text-gray-500 tabular-nums w-16">#{tag.sort_order}</td>
-                          <td className="px-5 py-3 w-16">
-                            <button
-                              onClick={() => handleToggleActief(tag)}
-                              className="relative w-10 h-5 rounded-full transition-colors"
-                              style={{ backgroundColor: tag.active ? '#7c3aed' : '#374151' }}
-                              title={tag.active ? 'Zet inactief' : 'Zet actief'}
-                            >
-                              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${tag.active ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
-                          </td>
-                          <td className="px-5 py-3">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => openBewerkTag(tag)}
-                                className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                                title="Bewerken"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleVerwijderTag(tag)}
-                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                                title="Verwijderen"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <div className="space-y-6">
+            {sortedCategorieen.map(cat => (
+              <InteresseCategorieKaart
+                key={cat.id}
+                cat={cat}
+                catTags={gesorteerdInCategorie(tags, cat.id)}
+                onNieuweTag={openNieuweTag}
+                onBewerkCategorie={openBewerkCategorie}
+                onVerwijderCategorie={handleVerwijderCategorie}
+                onToggleActief={handleToggleActief}
+                onBewerkTag={openBewerkTag}
+                onVerwijderTag={handleVerwijderTag}
+              />
+            ))}
+          </div>
+          <DragOverlay dropAnimation={null}>
+            {actieveTag ? <InteresseTagOverlay tag={actieveTag} /> : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
-      {/* Categorie modal */}
       {catModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md mx-4 shadow-2xl">
@@ -288,7 +361,7 @@ export function InteressesLijst({
               <h2 className="text-white font-semibold text-base">
                 {catEditId ? 'Categorie bewerken' : 'Categorie toevoegen'}
               </h2>
-              <button onClick={sluitCategorieModal} className="text-gray-400 hover:text-white transition-colors">
+              <button type="button" onClick={sluitCategorieModal} className="text-gray-400 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -320,12 +393,14 @@ export function InteressesLijst({
 
             <div className="px-6 py-4 border-t border-gray-800 flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={sluitCategorieModal}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
               >
                 Annuleren
               </button>
               <button
+                type="button"
                 onClick={handleOpslaanCategorie}
                 disabled={bezig}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
@@ -338,7 +413,6 @@ export function InteressesLijst({
         </div>
       )}
 
-      {/* Tag modal */}
       {tagModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md mx-4 shadow-2xl">
@@ -346,7 +420,7 @@ export function InteressesLijst({
               <h2 className="text-white font-semibold text-base">
                 {tagEditId ? 'Tag bewerken' : 'Tag toevoegen'}
               </h2>
-              <button onClick={sluitTagModal} className="text-gray-400 hover:text-white transition-colors">
+              <button type="button" onClick={sluitTagModal} className="text-gray-400 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -412,12 +486,14 @@ export function InteressesLijst({
 
             <div className="px-6 py-4 border-t border-gray-800 flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={sluitTagModal}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
               >
                 Annuleren
               </button>
               <button
+                type="button"
                 onClick={handleOpslaanTag}
                 disabled={bezig}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-opstap-orange-600 hover:bg-opstap-orange-500 transition-colors disabled:opacity-50"
