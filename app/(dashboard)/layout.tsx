@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import {
   LayoutDashboard,
   Map,
-  Globe,
   Users,
   LogOut,
   MapPin,
@@ -41,7 +40,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
     { href: '/marketing', label: 'Marketing', icon: Megaphone, roles: ['admin', 'national', 'marketing'] },
     { href: '/meldingen', label: 'Meldingen', icon: Inbox, roles: ['admin', 'national'] },
-    { href: '/provincies', label: 'Provincies', icon: Globe, roles: ['admin', 'national'] },
     { href: '/uitgaansgebieden', label: 'Uitgaansgebieden', icon: MapPin, roles: ['admin'] },
     { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
     { href: '/interesses', label: 'Interesses', icon: Tags, roles: ['admin'] },
