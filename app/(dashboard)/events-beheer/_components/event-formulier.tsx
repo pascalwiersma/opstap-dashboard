@@ -3,16 +3,20 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { ArrowLeft, Calendar, Loader2, MapPin, Save, Search, Ticket, Upload, X } from 'lucide-react'
+import { ArrowLeft, Calendar, Loader2, MapPin, Save, Ticket, Upload, X } from 'lucide-react'
 import type { Event, EventInput } from '@/app/actions/events'
 import { createEvent, updateEvent, uploadEventPhoto } from '@/app/actions/events'
-import { searchVenues } from '@/app/actions/venues'
-import type { VenueZoekResultaat } from '@/app/actions/venues'
-import type { Uitgaansgebied } from '@/app/actions/uitgaansgebieden'
+import { isoNaarLokaal, lokaalNaarIso } from '@/lib/datetime-lokaal'
+import type { GetekendeLocatie } from './gebied-kiezer'
 
-const VenueKaart = dynamic(
-  () => import('./venue-kaart').then(m => m.VenueKaart),
-  { ssr: false, loading: () => <div className="w-full h-44 rounded-xl bg-gray-800 animate-pulse" /> }
+const GebiedKiezer = dynamic(
+  () => import('./gebied-kiezer').then(m => m.GebiedKiezer),
+  { ssr: false, loading: () => <div className="w-full h-72 rounded-xl bg-gray-800 animate-pulse" /> }
+)
+
+const OmschrijvingEditor = dynamic(
+  () => import('./omschrijving-editor').then(m => m.OmschrijvingEditor),
+  { ssr: false, loading: () => <div className="w-full h-[280px] rounded-lg bg-gray-800 animate-pulse" /> }
 )
 
 const STATUS_OPTIES = [
@@ -22,71 +26,35 @@ const STATUS_OPTIES = [
 ]
 
 type Props = {
-  uitgaansgebieden: Uitgaansgebied[]
   currentUserId: string
   event?: Event
 }
 
-export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props) {
+export function EventFormulier({ currentUserId, event }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [fout, setFout] = useState<string | null>(null)
 
-  // Form fields
+  const start = isoNaarLokaal(event?.starts_at)
+  const eind = isoNaarLokaal(event?.ends_at)
+
   const [titel, setTitel] = useState(event?.title ?? '')
   const [omschrijving, setOmschrijving] = useState(event?.description ?? '')
-  const [startsAt, setStartsAt] = useState(
-    event?.starts_at ? new Date(event.starts_at).toISOString().slice(0, 16) : ''
-  )
-  const [stad, setStad] = useState(event?.city ?? '')
+  const [startDatum, setStartDatum] = useState(start.datum)
+  const [startTijd, setStartTijd] = useState(start.tijd)
+  const [eindDatum, setEindDatum] = useState(eind.datum)
+  const [eindTijd, setEindTijd] = useState(eind.tijd)
   const [status, setStatus] = useState<Event['status']>(event?.status ?? 'active')
-  const [maxDeelnemers, setMaxDeelnemers] = useState(
-    event?.max_attendees != null ? String(event.max_attendees) : ''
-  )
   const [ticketUrl, setTicketUrl] = useState(event?.ticket_url ?? '')
 
-  // Venue search
-  const [venueZoek, setVenueZoek] = useState('')
-  const [venueResultaten, setVenueResultaten] = useState<VenueZoekResultaat[]>([])
-  const [venueZoekBezig, setVenueZoekBezig] = useState(false)
-  const [geselecteerdeVenue, setGeselecteerdeVenue] = useState<VenueZoekResultaat | null>(
-    event?.venue_id && event?.venue_name
-      ? { id: event.venue_id, name: event.venue_name, lat: event.lat ?? 0, lng: event.lng ?? 0, type: null }
-      : null
-  )
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bestaandeLocatie = event?.lat != null && event?.lng != null
+    ? { lat: event.lat, lng: event.lng }
+    : null
+  const [locatie, setLocatie] = useState<GetekendeLocatie | null>(bestaandeLocatie)
 
-  // Photo
   const [fotoBestand, setFotoBestand] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(event?.photo_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  function onVenueZoekChange(waarde: string) {
-    setVenueZoek(waarde)
-    if (!waarde.trim()) { setVenueResultaten([]); return }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    setVenueZoekBezig(true)
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await searchVenues(waarde, stad || undefined)
-        setVenueResultaten(res)
-      } finally {
-        setVenueZoekBezig(false)
-      }
-    }, 300)
-  }
-
-  function kiesVenue(v: VenueZoekResultaat) {
-    setGeselecteerdeVenue(v)
-    setVenueZoek('')
-    setVenueResultaten([])
-  }
-
-  function verwijderVenue() {
-    setGeselecteerdeVenue(null)
-    setVenueZoek('')
-    setVenueResultaten([])
-  }
 
   function onFotoKiezen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -103,7 +71,22 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
 
   async function handleOpslaan() {
     if (!titel.trim()) { setFout('Titel is verplicht.'); return }
-    if (!startsAt) { setFout('Startdatum is verplicht.'); return }
+    if (!startDatum || !startTijd) { setFout('Startdatum en starttijd zijn verplicht.'); return }
+    if (!eindDatum || !eindTijd) { setFout('Einddatum en eindtijd zijn verplicht.'); return }
+    const startsAt = lokaalNaarIso(startDatum, startTijd)
+    const endsAt = lokaalNaarIso(eindDatum, eindTijd)
+    if (Number.isNaN(new Date(startsAt).getTime()) || Number.isNaN(new Date(endsAt).getTime())) {
+      setFout('Ongeldige datum of tijd.')
+      return
+    }
+    if (new Date(endsAt) <= new Date(startsAt)) {
+      setFout('Einde moet na de start liggen.')
+      return
+    }
+    if (!locatie) {
+      setFout('Teken een gebied op de kaart en rond het af.')
+      return
+    }
     setFout(null)
 
     startTransition(async () => {
@@ -117,16 +100,16 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
 
         const input: EventInput = {
           title: titel.trim(),
-          description: omschrijving.trim() || null,
-          starts_at: new Date(startsAt).toISOString(),
-          venue_id: geselecteerdeVenue?.id ?? null,
-          city: stad || null,
+          description: omschrijving || null,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          venue_id: null,
+          city: event?.city ?? null,
           ticket_url: ticketUrl.trim() || null,
           artists: null,
           photo_url: photoUrl,
-          lat: geselecteerdeVenue?.lat ?? null,
-          lng: geselecteerdeVenue?.lng ?? null,
-          max_attendees: maxDeelnemers ? parseInt(maxDeelnemers) : null,
+          lat: locatie.lat,
+          lng: locatie.lng,
           status,
           creator_id: currentUserId,
         }
@@ -151,7 +134,6 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
 
   return (
     <div className="max-w-2xl">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={() => router.push('/events-beheer')}
@@ -165,7 +147,6 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
       </div>
 
       <div className="space-y-6">
-        {/* Basisinfo */}
         <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Basisinformatie</h2>
 
@@ -176,117 +157,68 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
 
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">Omschrijving</label>
-            <textarea
-              value={omschrijving}
-              onChange={e => setOmschrijving(e.target.value)}
-              rows={5}
-              placeholder="Beschrijving, programma, artiesten..."
-              className={`${invoerKlasse} resize-none`}
-            />
+            <OmschrijvingEditor value={omschrijving} onChange={setOmschrijving} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
-                <Calendar className="w-3.5 h-3.5" /> Startdatum en -tijd *
+                <Calendar className="w-3.5 h-3.5" /> Startdatum *
               </label>
-              <input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} className={invoerKlasse} />
+              <input type="date" value={startDatum} onChange={e => setStartDatum(e.target.value)} className={invoerKlasse} />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Starttijd *</label>
+              <input type="time" value={startTijd} onChange={e => setStartTijd(e.target.value)} className={invoerKlasse} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                <Calendar className="w-3.5 h-3.5" /> Einddatum *
+              </label>
+              <input type="date" value={eindDatum} onChange={e => setEindDatum(e.target.value)} className={invoerKlasse} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Eindtijd *</label>
+              <input type="time" value={eindTijd} onChange={e => setEindTijd(e.target.value)} className={invoerKlasse} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Status</label>
               <select value={status} onChange={e => setStatus(e.target.value as Event['status'])} className={invoerKlasse}>
                 {STATUS_OPTIES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
                 <Ticket className="w-3.5 h-3.5" /> Ticket URL
               </label>
               <input type="url" value={ticketUrl} onChange={e => setTicketUrl(e.target.value)} placeholder="https://..." className={invoerKlasse} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Max. deelnemers</label>
-              <input type="number" min="1" value={maxDeelnemers} onChange={e => setMaxDeelnemers(e.target.value)} placeholder="Onbeperkt" className={invoerKlasse} />
-            </div>
           </div>
         </section>
 
-        {/* Locatie */}
         <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Locatie</h2>
-
-          {/* Stad */}
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
-              <MapPin className="w-3.5 h-3.5" /> Stad
-            </label>
-            <select
-              value={stad}
-              onChange={e => { setStad(e.target.value); setVenueZoek(''); setVenueResultaten([]) }}
-              className={invoerKlasse}
-            >
-              <option value="">— Selecteer stad —</option>
-              {uitgaansgebieden.map(g => <option key={g.id} value={g.naam}>{g.naam}</option>)}
-            </select>
-          </div>
-
-          {/* Venue zoeken */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Venue</label>
-            {geselecteerdeVenue ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-gray-800 border border-opstap-orange-600/40 rounded-lg px-3 py-2.5">
-                  <span className="text-sm text-white font-medium">{geselecteerdeVenue.name}</span>
-                  <button onClick={verwijderVenue} className="text-gray-400 hover:text-white transition-colors ml-2">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                {geselecteerdeVenue.lat !== 0 && (
-                  <VenueKaart key={geselecteerdeVenue.id} lat={geselecteerdeVenue.lat} lng={geselecteerdeVenue.lng} />
-                )}
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                  <input
-                    value={venueZoek}
-                    onChange={e => onVenueZoekChange(e.target.value)}
-                    placeholder={stad ? `Venue zoeken in ${stad}...` : 'Selecteer eerst een stad'}
-                    className={`${invoerKlasse} pl-9`}
-                  />
-                  {venueZoekBezig && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />
-                  )}
-                </div>
-                {venueResultaten.length > 0 && (
-                  <ul className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-                    {venueResultaten.map(v => (
-                      <li key={v.id}>
-                        <button
-                          onClick={() => kiesVenue(v)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-gray-700 transition-colors flex items-center gap-2"
-                        >
-                          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          {v.name}
-                          {v.type && <span className="text-xs text-gray-500 ml-auto">{v.type}</span>}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {venueZoek.trim() && !venueZoekBezig && venueResultaten.length === 0 && (
-                  <p className="mt-2 text-xs text-gray-500">Geen venues gevonden.</p>
-                )}
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-gray-500">
+            Teken het gebied op de kaart (minimaal 3 punten) en rond af. De locatie is het middelpunt van de vorm.
+          </p>
+          {locatie && (
+            <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <MapPin className="w-3.5 h-3.5" />
+              Gebied vastgelegd — {locatie.lat.toFixed(4)}, {locatie.lng.toFixed(4)}
+            </p>
+          )}
+          <GebiedKiezer
+            initialCenter={bestaandeLocatie}
+            onChange={setLocatie}
+          />
         </section>
 
-        {/* Foto */}
         <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Foto</h2>
 
@@ -321,12 +253,10 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
           />
         </section>
 
-        {/* Error */}
         {fout && (
           <p className="text-xs text-red-400 bg-red-950/40 border border-red-800/50 rounded-lg px-4 py-3">{fout}</p>
         )}
 
-        {/* Acties */}
         <div className="flex items-center justify-end gap-3 pb-8">
           <button
             onClick={() => router.push('/events-beheer')}
