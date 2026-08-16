@@ -21,31 +21,49 @@ type Props = {
 const TABS: { id: MeldingTab; label: string; icon: typeof Bug }[] = [
   { id: 'bugs', label: 'Bugs', icon: Bug },
   { id: 'rapporten', label: 'Rapporten', icon: Flag },
-  { id: 'feedback', label: 'Feedback', icon: MessageSquare },
 ]
 
 export function MeldingenTabs({ bugs, rapporten, feedback, initialTab }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<MeldingTab>(initialTab)
+  const [focusFeedback, setFocusFeedback] = useState(false)
 
   useEffect(() => {
-    const fromHash = parseMeldingTab(window.location.hash.replace('#', ''))
+    const raw = window.location.hash.replace('#', '')
+    const fromHash = parseMeldingTab(raw)
     if (!fromHash) return
-    window.history.replaceState(null, '', `/meldingen?tab=${fromHash}`)
-    queueMicrotask(() => setTab(fromHash))
+
+    const naarFeedback = raw === 'feedback'
+    window.history.replaceState(
+      null,
+      '',
+      naarFeedback ? '/meldingen?tab=rapporten#feedback' : `/meldingen?tab=${fromHash}`,
+    )
+    queueMicrotask(() => {
+      setTab(fromHash)
+      if (naarFeedback) setFocusFeedback(true)
+    })
   }, [])
+
+  useEffect(() => {
+    if (!focusFeedback || tab !== 'rapporten') return
+    document.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    queueMicrotask(() => setFocusFeedback(false))
+  }, [focusFeedback, tab])
 
   function selectTab(next: MeldingTab) {
     setTab(next)
     router.replace(`/meldingen?tab=${next}`, { scroll: false })
   }
 
+  const bugsNieuw = bugs.filter(b => b.status === 'nieuw').length
+  const rapportenNieuw = rapporten.filter(r => r.status === 'nieuw').length
+  const feedbackNieuw = feedback.filter(f => f.status === 'nieuw').length
   const nieuwPerTab: Record<MeldingTab, number> = {
-    bugs: bugs.filter(b => b.status === 'nieuw').length,
-    rapporten: rapporten.filter(r => r.status === 'nieuw').length,
-    feedback: feedback.filter(f => f.status === 'nieuw').length,
+    bugs: bugsNieuw,
+    rapporten: rapportenNieuw + feedbackNieuw,
   }
-  const aantalNieuw = nieuwPerTab.bugs + nieuwPerTab.rapporten + nieuwPerTab.feedback
+  const aantalNieuw = bugsNieuw + rapportenNieuw + feedbackNieuw
   const aantalTotaal = bugs.length + rapporten.length + feedback.length
 
   return (
@@ -101,8 +119,37 @@ export function MeldingenTabs({ bugs, rapporten, feedback, initialTab }: Props) 
 
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {tab === 'bugs' && <BugsLijst bugs={bugs} />}
-        {tab === 'rapporten' && <RapportenLijst rapporten={rapporten} />}
-        {tab === 'feedback' && <FeedbackLijst feedback={feedback} />}
+        {tab === 'rapporten' && (
+          <div className="flex flex-col gap-10">
+            <section>
+              <div className="flex items-center gap-2 mb-1">
+                <Flag className="w-4 h-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-white">Rapporten</h2>
+                {rapportenNieuw > 0 && (
+                  <span className="text-xs rounded-full px-1.5 py-0.5 bg-orange-500 text-white">
+                    {rapportenNieuw}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-5">Meldingen over andere gebruikers</p>
+              <RapportenLijst rapporten={rapporten} />
+            </section>
+
+            <section id="feedback">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageSquare className="w-4 h-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-white">Feedback</h2>
+                {feedbackNieuw > 0 && (
+                  <span className="text-xs rounded-full px-1.5 py-0.5 bg-orange-500 text-white">
+                    {feedbackNieuw}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-5">Ideeën en opmerkingen van gebruikers</p>
+              <FeedbackLijst feedback={feedback} />
+            </section>
+          </div>
+        )}
       </div>
     </div>
   )

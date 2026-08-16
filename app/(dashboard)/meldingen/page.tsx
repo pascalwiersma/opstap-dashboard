@@ -15,6 +15,8 @@ export default async function MeldingenPage({
   if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
 
   const { tab } = await searchParams
+  if (tab === 'feedback') redirect('/meldingen?tab=rapporten')
+
   const [bugs, rapporten, feedback] = await Promise.all([
     getBugReports(),
     getRapporten(),
