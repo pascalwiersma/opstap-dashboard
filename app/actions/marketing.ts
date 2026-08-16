@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { type MarketingPeriod, PERIOD_DAYS, periodSinceIso } from '@/lib/marketing-period'
 import { computeFunnelSteps, computeActivationRate, type FunnelStep, type EventActorRow, type Kpi } from '@/lib/marketing-calculations'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 // Alle marketingevents die de RN-app logt via lib/analytics.ts (trackEvent).
 // store_page_view ontbreekt bewust: dat gebeurt op de App Store/Play Store zelf,
@@ -51,6 +52,7 @@ function toChartData(counts: Record<string, number>) {
 }
 
 export async function getMarketingFunnel(period: MarketingPeriod = 'all'): Promise<FunnelStep[]> {
+  await eisPermissie('marketing', 'zien')
   let query = supabaseAdmin
     .from('analytics_events')
     .select('event_name, user_id, session_id')
@@ -67,6 +69,7 @@ export async function getMarketingFunnel(period: MarketingPeriod = 'all'): Promi
 }
 
 export async function getMarketingTotals(period: MarketingPeriod = 'all'): Promise<Record<string, number>> {
+  await eisPermissie('marketing', 'zien')
   let query = supabaseAdmin
     .from('analytics_events')
     .select('event_name')
@@ -86,6 +89,7 @@ export async function getMarketingTotals(period: MarketingPeriod = 'all'): Promi
 }
 
 export async function getMarketingChartData(period: MarketingPeriod = '30') {
+  await eisPermissie('marketing', 'zien')
   const days = PERIOD_DAYS[period]
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
 
@@ -130,6 +134,7 @@ function weekKeyFor(date: Date): string {
 }
 
 export async function getWeeklyActivatedUsers(weeks = 12) {
+  await eisPermissie('marketing', 'zien')
   const since = startOfIsoWeek(new Date(Date.now() - (weeks - 1) * 7 * 24 * 60 * 60 * 1000)).toISOString()
 
   const [{ data: verifiedRows, error: vErr }, { data: eventRows, error: eErr }] = await Promise.all([
@@ -216,6 +221,7 @@ async function getActivationRate(
 }
 
 export async function getMarketingKpis(period: MarketingPeriod = 'all'): Promise<Kpi[]> {
+  await eisPermissie('marketing', 'zien')
   const since = periodSinceIso(period)
 
   const [funnel, checkinWithin7d, secondCheckinWithin30d] = await Promise.all([

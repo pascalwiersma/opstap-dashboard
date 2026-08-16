@@ -1,5 +1,7 @@
 import { signOut } from '@/app/actions/auth'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { kan } from '@/lib/permissions'
+import { rolBadgeKlasse } from '@/lib/dashboard-rollen'
 import { redirect } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -10,23 +12,11 @@ import {
   Tags,
   Inbox,
   Megaphone,
+  Shield,
 } from 'lucide-react'
 import Link from 'next/link'
 import { HashFoutBanner } from './_components/hash-fout-banner'
 
-const ROL_LABEL: Record<string, string> = {
-  admin: 'Admin',
-  national: 'Vertegenwoordiger',
-  provincial: 'Vertegenwoordiger',
-  marketing: 'Marketing',
-}
-
-const ROL_KLEUR: Record<string, string> = {
-  admin: 'bg-blue-600',
-  national: 'bg-emerald-600',
-  provincial: 'bg-emerald-600',
-  marketing: 'bg-pink-600',
-}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
@@ -34,30 +24,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const heeftProvincie = user.role !== 'provincial' || !!user.province_id
 
-  const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'national', 'provincial'] },
-    { href: '/kaart', label: 'Kaart', icon: Map, roles: ['admin', 'national', 'provincial'], requiresProvincie: true },
-    { href: '/marketing', label: 'Marketing', icon: Megaphone, roles: ['admin', 'national', 'marketing'] },
-    { href: '/meldingen', label: 'Meldingen', icon: Inbox, roles: ['admin', 'national'] },
-    { href: '/events-beheer', label: 'Events', icon: CalendarDays, roles: ['admin'] },
-    { href: '/interesses', label: 'Interesses', icon: Tags, roles: ['admin'] },
-    { href: '/gebruikers', label: 'Gebruikers', icon: Users, roles: ['admin'] },
-  ].filter(item =>
-    item.roles.includes(user.role) &&
-    (!item.requiresProvincie || heeftProvincie)
+  const navItems = ([
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard, resource: 'overzicht' as const },
+    { href: '/kaart', label: 'Locaties', icon: Map, resource: 'locaties' as const, requiresProvincie: true },
+    { href: '/events-beheer', label: 'Evenementen', icon: CalendarDays, resource: 'evenementen' as const },
+    { href: '/marketing', label: 'Marketing', icon: Megaphone, resource: 'marketing' as const },
+    { href: '/meldingen', label: 'Meldingen', icon: Inbox, resource: 'meldingen' as const },
+    { href: '/interesses', label: 'Interesses', icon: Tags, resource: 'interesses' as const },
+    { href: '/gebruikers', label: 'Gebruikers', icon: Users, resource: 'gebruikers' as const },
+    { href: '/rollen', label: 'Rollen', icon: Shield, resource: 'rollen' as const },
+  ]).filter(item =>
+    kan(user, item.resource, 'zien') &&
+    (!('requiresProvincie' in item) || !item.requiresProvincie || heeftProvincie)
   )
 
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-60 shrink-0 flex flex-col bg-gray-900 border-r border-gray-800">
-        {/* Logo */}
         <div className="flex items-center justify-center px-5 py-6 border-b border-gray-800">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="OpStap" className="w-14 h-14 object-contain" />
         </div>
 
-        {/* Navigatie */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link
@@ -71,12 +59,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           ))}
         </nav>
 
-        {/* Gebruiker + uitloggen */}
         <div className="px-3 py-4 border-t border-gray-800 space-y-3">
           <div className="px-3 py-2.5 rounded-lg bg-gray-800/50">
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${ROL_KLEUR[user.role]} text-white`}>
-                {ROL_LABEL[user.role]}
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${rolBadgeKlasse(user.role)} text-white`}>
+                {user.role_name}
               </span>
               {user.province_name && (
                 <span className="text-xs text-gray-400 truncate">{user.province_name}</span>
@@ -97,7 +84,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      {/* Hoofdcontent */}
       <main className="flex-1 overflow-y-auto">
         <HashFoutBanner />
         {children}

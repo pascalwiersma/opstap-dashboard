@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import { createSupabaseServerClient, getCurrentUser } from '@/lib/supabase-server'
+import { eisPermissie } from '@/lib/eis-permissie'
 import { authSessionId } from '@/lib/auth-session'
 import { nieuwTotpGeheim, totpGeldig, totpIsIngeschakeld, totpQrDataUrl, totpUri } from '@/lib/totp'
 import { revalidatePath } from 'next/cache'
@@ -26,10 +27,7 @@ function totpTabelOntbreekt(error: { code?: string; message: string }): boolean 
 }
 
 async function eisAdmin() {
-  const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') {
-    throw new Error('Geen toegang.')
-  }
+  const user = await eisPermissie('gebruikers', 'bewerken')
   return user
 }
 

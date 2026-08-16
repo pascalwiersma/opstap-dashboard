@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { legacyPermissies, type PermissieSleutel } from '@/lib/permissions'
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
@@ -40,7 +41,9 @@ export type CurrentUser = {
   id: string
   phone: string
   name: string | null
-  role: 'admin' | 'national' | 'provincial' | 'marketing'
+  role: string
+  role_name: string
+  permissions: ReadonlySet<PermissieSleutel>
   province_id: string | null
   province_name: string | null
 }
@@ -59,6 +62,27 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   if (!profile?.dashboard_role) return null
 
+  const slug = profile.dashboard_role
+  const { data: rolRij, error: rolError } = await admin
+    .from('dashboard_roles')
+    .select('name, dashboard_role_permissions(resource, action)')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  const tabelOntbreekt = !!rolError && (
+    rolError.code === 'PGRST205' ||
+    rolError.code === '42P01' ||
+    rolError.message.toLowerCase().includes('does not exist')
+  )
+
+  let role_name = slug
+  let permissions = legacyPermissies(slug)
+  if (!tabelOntbreekt && rolRij) {
+    role_name = rolRij.name
+    const rijen = (rolRij.dashboard_role_permissions ?? []) as { resource: string; action: string }[]
+    permissions = new Set(rijen.map(p => `${p.resource}:${p.action}` as PermissieSleutel))
+  }
+
   let province_name: string | null = null
   if (profile.province_id) {
     const { data: prov } = await admin
@@ -73,7 +97,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: user.id,
     phone: user.phone ?? '',
     name: profile.name,
-    role: profile.dashboard_role as 'admin' | 'national' | 'provincial' | 'marketing',
+    role: slug,
+    role_name,
+    permissions,
     province_id: profile.province_id,
     province_name,
   }

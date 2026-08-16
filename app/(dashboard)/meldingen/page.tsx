@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import { getBugReports } from '@/app/actions/bugs'
 import { getRapporten } from '@/app/actions/reports'
@@ -12,7 +13,7 @@ export default async function MeldingenPage({
   searchParams: Promise<{ tab?: string }>
 }) {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial' || user.role === 'marketing') redirect('/')
+  if (!user || !kan(user, 'meldingen', 'zien')) redirect(user ? eersteToegestanePad(user) : '/')
 
   const { tab } = await searchParams
   const [bugs, rapporten, feedback] = await Promise.all([

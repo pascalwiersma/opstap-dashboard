@@ -3,6 +3,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { sanitizeOmschrijving } from '@/lib/sanitize-omschrijving'
+import { eisPermissie } from '@/lib/eis-permissie'
+import { getCurrentUser } from '@/lib/supabase-server'
+import { kan } from '@/lib/permissions'
 
 function adminClient() {
   return createClient(
@@ -54,6 +57,7 @@ function mapEvent(row: Record<string, unknown>): Event {
 }
 
 export async function getEvent(id: string): Promise<Event | null> {
+  await eisPermissie('evenementen', 'zien')
   const { data, error } = await adminClient()
     .from('events')
     .select(`${EVENT_KOLOMMEN}, venues(name)`)
@@ -64,6 +68,10 @@ export async function getEvent(id: string): Promise<Event | null> {
 }
 
 export async function uploadEventPhoto(formData: FormData): Promise<string> {
+  const user = await getCurrentUser()
+  if (!kan(user, 'evenementen', 'bewerken') && !kan(user, 'evenementen', 'toevoegen')) {
+    throw new Error('Geen toegang.')
+  }
   const file = formData.get('file') as File
   if (!file) throw new Error('Geen bestand gevonden.')
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
@@ -78,6 +86,7 @@ export async function uploadEventPhoto(formData: FormData): Promise<string> {
 }
 
 export async function getEvents(): Promise<Event[]> {
+  await eisPermissie('evenementen', 'zien')
   const { data, error } = await adminClient()
     .from('events')
     .select(`${EVENT_KOLOMMEN}, venues(name)`)
@@ -95,6 +104,7 @@ function payloadVanInput(input: EventInput | Partial<Omit<EventInput, 'creator_i
 }
 
 export async function createEvent(input: EventInput): Promise<Event> {
+  await eisPermissie('evenementen', 'toevoegen')
   const { data, error } = await adminClient()
     .from('events')
     .insert(payloadVanInput(input))
@@ -107,6 +117,7 @@ export async function createEvent(input: EventInput): Promise<Event> {
 }
 
 export async function updateEvent(id: string, input: Partial<Omit<EventInput, 'creator_id'>>) {
+  await eisPermissie('evenementen', 'bewerken')
   const { error } = await adminClient()
     .from('events')
     .update(payloadVanInput(input))
@@ -117,6 +128,7 @@ export async function updateEvent(id: string, input: Partial<Omit<EventInput, 'c
 }
 
 export async function deleteEvent(id: string) {
+  await eisPermissie('evenementen', 'verwijderen')
   const { error } = await adminClient()
     .from('events')
     .delete()

@@ -1,15 +1,17 @@
 import { getGebruiker } from '@/app/actions/gebruikers'
+import { getRolOpties } from '@/app/actions/rollen'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect, notFound } from 'next/navigation'
 import { BewerkGebruikerForm } from './_components/bewerk-gebruiker-form'
 import { Users } from 'lucide-react'
 
 export default async function GebruikerBewerkPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') redirect('/')
+  if (!user || !kan(user, 'gebruikers', 'bewerken')) redirect(user ? eersteToegestanePad(user) : '/')
 
   const { id } = await params
-  const gebruiker = await getGebruiker(id)
+  const [gebruiker, rollen] = await Promise.all([getGebruiker(id), getRolOpties()])
   if (!gebruiker) notFound()
 
   return (
@@ -19,7 +21,7 @@ export default async function GebruikerBewerkPage({ params }: { params: Promise<
         <h1 className="text-2xl font-display text-white">Gebruiker bewerken</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">{gebruiker.name ?? gebruiker.phone ?? 'Dashboardgebruiker'}</p>
-      <BewerkGebruikerForm gebruiker={gebruiker} />
+      <BewerkGebruikerForm gebruiker={gebruiker} rollen={rollen} />
     </div>
   )
 }

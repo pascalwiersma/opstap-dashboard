@@ -22,6 +22,7 @@ type Props = {
   onSave: (input: VenueInput) => Promise<void>
   onDelete?: () => Promise<void>
   onClose: () => void
+  kanOpslaan?: boolean
 }
 
 const DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const
@@ -67,7 +68,7 @@ function startTijden(hours: Record<string, string> | null | undefined): Record<(
   return init
 }
 
-export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, onClose }: Props) {
+export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, onClose, kanOpslaan = true }: Props) {
   const [name, setName] = useState(venue?.name ?? '')
   const [type, setType] = useState<VenueType | null>(venue?.type ?? null)
   const [description, setDescription] = useState(venue?.description ?? '')
@@ -340,6 +341,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
             {deleting ? 'Verwijderen...' : 'Verwijderen'}
           </button>
         )}
+        {kanOpslaan && (
         <button
           onClick={handleSave}
           disabled={saving}
@@ -348,6 +350,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           <Save className="w-4 h-4" />
           {saving ? 'Opslaan...' : 'Opslaan'}
         </button>
+        )}
       </div>
     </div>
   )

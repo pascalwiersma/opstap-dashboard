@@ -24,9 +24,14 @@ function formatDatum(iso: string) {
   return new Date(iso).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-type Props = { initialEvents: Event[] }
+type Props = {
+  initialEvents: Event[]
+  kanToevoegen: boolean
+  kanBewerken: boolean
+  kanVerwijderen: boolean
+}
 
-export function EventsLijst({ initialEvents }: Props) {
+export function EventsLijst({ initialEvents, kanToevoegen, kanBewerken, kanVerwijderen }: Props) {
   const [events, setEvents] = useState(initialEvents)
   const router = useRouter()
 
@@ -45,13 +50,15 @@ export function EventsLijst({ initialEvents }: Props) {
     <>
       <div className="flex items-center justify-between mb-6">
         <p className="text-gray-400 text-sm">{events.length} event{events.length !== 1 ? 's' : ''}</p>
+        {kanToevoegen && (
         <button
           onClick={() => router.push('/events-beheer/nieuw')}
           className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Event toevoegen
+          Evenement toevoegen
         </button>
+        )}
       </div>
 
       {events.length === 0 ? (
@@ -91,6 +98,7 @@ export function EventsLijst({ initialEvents }: Props) {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-1.5">
+                      {kanBewerken && (
                       <button
                         onClick={() => router.push(`/events-beheer/${event.id}/bewerken`)}
                         className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
@@ -98,6 +106,8 @@ export function EventsLijst({ initialEvents }: Props) {
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
+                      )}
+                      {kanVerwijderen && (
                       <button
                         onClick={() => handleVerwijder(event)}
                         className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
@@ -105,6 +115,7 @@ export function EventsLijst({ initialEvents }: Props) {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

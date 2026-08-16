@@ -2,14 +2,15 @@ import { getVenues } from '@/app/actions/venues'
 import { getCityEvents } from '@/app/actions/city-events'
 import { getProvinces } from '@/app/actions/provinces'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import { UnifiedMapWrapper } from './_components/unified-map-wrapper'
 
 export default async function KaartPage() {
   const user = await getCurrentUser()
-  if (user?.role === 'marketing') redirect('/marketing')
-  if (user?.role === 'provincial' && !user.province_id) redirect('/')
-  const province_id = user?.role === 'provincial' ? (user.province_id ?? undefined) : undefined
+  if (!user || !kan(user, 'locaties', 'zien')) redirect(user ? eersteToegestanePad(user) : '/')
+  if (user.role === 'provincial' && !user.province_id) redirect('/')
+  const province_id = user.role === 'provincial' ? (user.province_id ?? undefined) : undefined
 
   const [venues, events, provinces] = await Promise.all([
     getVenues(province_id),
@@ -25,7 +26,7 @@ export default async function KaartPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 shrink-0">
         <div>
-          <h1 className="text-white font-display text-lg">Kaart</h1>
+          <h1 className="text-white font-display text-lg">Locaties</h1>
           <p className="text-gray-500 text-sm">
             {userProvince ? `${userProvince.name} · ` : ''}{venues.length} venues · {events.length} evenement{events.length !== 1 ? 'en' : ''}
           </p>
@@ -35,8 +36,11 @@ export default async function KaartPage() {
         <UnifiedMapWrapper
           initialVenues={venues}
           initialEvents={events}
-          userProvinceId={user?.province_id ?? null}
+          userProvinceId={user.province_id ?? null}
           userProvince={userProvince}
+          kanToevoegen={kan(user, 'locaties', 'toevoegen')}
+          kanBewerken={kan(user, 'locaties', 'bewerken')}
+          kanVerwijderen={kan(user, 'locaties', 'verwijderen')}
         />
       </div>
     </div>

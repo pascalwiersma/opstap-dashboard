@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getCurrentUser } from '@/lib/supabase-server'
+import { eersteToegestanePad, kan } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 import {
   getMarketingFunnel, getMarketingTotals, getMarketingChartData,
@@ -25,7 +26,7 @@ export default async function MarketingPage({
   searchParams: Promise<{ period?: string | string[] }>
 }) {
   const user = await getCurrentUser()
-  if (!user || user.role === 'provincial') redirect('/')
+  if (!user || !kan(user, 'marketing', 'zien')) redirect(user ? eersteToegestanePad(user) : '/')
 
   const period = parseMarketingPeriod((await searchParams).period)
 

@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -33,6 +34,7 @@ export type BugReport = {
 const SCREENSHOT_URL_TTL_SECONDS = 60 * 10
 
 export async function getBugReports(status?: BugStatus): Promise<BugReport[]> {
+  await eisPermissie('meldingen', 'zien')
   const db = adminClient()
 
   let query = db
@@ -66,6 +68,7 @@ export async function getBugReports(status?: BugStatus): Promise<BugReport[]> {
 }
 
 export async function updateBugStatus(id: string, status: BugStatus) {
+  await eisPermissie('meldingen', 'bewerken')
   const { error } = await adminClient()
     .from('bug_reports')
     .update({ status })
