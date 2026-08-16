@@ -30,6 +30,13 @@ export function MatchingInstellingenForm({
   const [eind, setEind] = useState(String(initial.check_in_end_hour))
   const [match, setMatch] = useState(String(initial.match_hour))
   const [finalize, setFinalize] = useState(String(initial.finalize_hour))
+  const [interesse, setInteresse] = useState(String(initial.interesse_gewicht_pct))
+  const [minGroep, setMinGroep] = useState(String(initial.min_groep))
+  const [fallback, setFallback] = useState(String(initial.fallback_groepsgrootte))
+  const [minAcceptaties, setMinAcceptaties] = useState(String(initial.min_acceptaties))
+  const [herinnering, setHerinnering] = useState(String(initial.herinnering_minuten_voor_match))
+  const [attendance, setAttendance] = useState(String(initial.attendance_hour))
+  const [trust, setTrust] = useState(String(initial.trust_hour))
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState('')
   const [ok, setOk] = useState('')
@@ -57,6 +64,13 @@ export function MatchingInstellingenForm({
         check_in_end_hour: Number(eind),
         match_hour: Number(match),
         finalize_hour: Number(finalize),
+        interesse_gewicht_pct: Number(interesse),
+        min_groep: Number(minGroep),
+        fallback_groepsgrootte: Number(fallback),
+        min_acceptaties: Number(minAcceptaties),
+        herinnering_minuten_voor_match: Number(herinnering),
+        attendance_hour: Number(attendance),
+        trust_hour: Number(trust),
       })
       setOk('Instellingen opgeslagen. Cron-jobs zijn meegenomen.')
       router.refresh()
@@ -72,9 +86,7 @@ export function MatchingInstellingenForm({
       <div>
         <h2 className="text-sm font-semibold text-white">Instellingen</h2>
         <p className="text-xs text-gray-500 mt-1">
-          Deze waarden staan in de database en worden gelezen door de app, de check-in-trigger
-          en de edge functions. Radius en batchgrootte staan er niet bij — het algoritme matcht
-          per uitgaansgebied of evenement, niet op afstand of in batches.
+          Alles hieronder gaat naar de database en wordt gelezen door matcher, finalize en cron.
         </p>
       </div>
 
@@ -163,9 +175,96 @@ export function MatchingInstellingenForm({
         </label>
       </div>
       <p className="text-xs text-gray-500">
-        Uren in Amsterdam. Cron gebruikt UTC (zomertijd: 2 uur eerder), dezelfde conventie als de
-        bestaande jobs.
+        Uren in Amsterdam. Cron gebruikt UTC (zomertijd: 2 uur eerder).
       </p>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <label className="block text-sm text-gray-300">
+          Interesse-gewicht %
+          <input
+            type="number"
+            min={0}
+            max={100}
+            disabled={!kanBewerken}
+            value={interesse}
+            onChange={e => setInteresse(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+          <span className="block text-xs text-gray-500 mt-1">Venues = {100 - (Number(interesse) || 0)}%</span>
+        </label>
+        <label className="block text-sm text-gray-300">
+          Min. groep
+          <input
+            type="number"
+            min={2}
+            max={12}
+            disabled={!kanBewerken}
+            value={minGroep}
+            onChange={e => setMinGroep(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+        <label className="block text-sm text-gray-300">
+          Fallback groepsgrootte
+          <input
+            type="number"
+            min={2}
+            max={12}
+            disabled={!kanBewerken}
+            value={fallback}
+            onChange={e => setFallback(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+        <label className="block text-sm text-gray-300">
+          Min. acceptaties
+          <input
+            type="number"
+            min={1}
+            max={12}
+            disabled={!kanBewerken}
+            value={minAcceptaties}
+            onChange={e => setMinAcceptaties(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+        <label className="block text-sm text-gray-300">
+          Herinnering (min vóór match)
+          <input
+            type="number"
+            min={0}
+            max={180}
+            disabled={!kanBewerken}
+            value={herinnering}
+            onChange={e => setHerinnering(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+        <label className="block text-sm text-gray-300">
+          Attendance-uur (ochtend erna)
+          <input
+            type="number"
+            min={0}
+            max={23}
+            disabled={!kanBewerken}
+            value={attendance}
+            onChange={e => setAttendance(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+        <label className="block text-sm text-gray-300">
+          Trust-uur (ochtend erna)
+          <input
+            type="number"
+            min={0}
+            max={23}
+            disabled={!kanBewerken}
+            value={trust}
+            onChange={e => setTrust(e.target.value)}
+            className={`${invoerKlasse} mt-1.5`}
+          />
+        </label>
+      </div>
 
       {kanBewerken && (
         <button
