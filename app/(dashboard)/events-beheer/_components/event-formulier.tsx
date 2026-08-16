@@ -15,18 +15,11 @@ const VenueKaart = dynamic(
   { ssr: false, loading: () => <div className="w-full h-44 rounded-xl bg-gray-800 animate-pulse" /> }
 )
 
-const GebiedKiezer = dynamic(
-  () => import('./gebied-kiezer').then(m => m.GebiedKiezer),
-  { ssr: false, loading: () => <div className="w-full h-72 rounded-xl bg-gray-800 animate-pulse" /> }
-)
-
 const STATUS_OPTIES = [
   { value: 'active' as const, label: 'Actief' },
   { value: 'cancelled' as const, label: 'Geannuleerd' },
   { value: 'finished' as const, label: 'Afgelopen' },
 ]
-
-type LocatieModus = 'venue' | 'gebied'
 
 type Props = {
   uitgaansgebieden: Uitgaansgebied[]
@@ -52,10 +45,6 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
   )
   const [ticketUrl, setTicketUrl] = useState(event?.ticket_url ?? '')
 
-  // Locatie modus
-  const heeftVenue = !!(event?.venue_id)
-  const [locatieModus, setLocatieModus] = useState<LocatieModus>(heeftVenue ? 'venue' : 'venue')
-
   // Venue search
   const [venueZoek, setVenueZoek] = useState('')
   const [venueResultaten, setVenueResultaten] = useState<VenueZoekResultaat[]>([])
@@ -67,25 +56,10 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
   )
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Gebied
-  const [gebiedLocatie, setGebiedLocatie] = useState<{ lat: number; lng: number } | null>(null)
-
   // Photo
   const [fotoBestand, setFotoBestand] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(event?.photo_url ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const geselecteerdGebied = uitgaansgebieden.find(g => g.naam === stad)
-
-  function wisselLocatieModus(modus: LocatieModus) {
-    setLocatieModus(modus)
-    if (modus === 'venue') setGebiedLocatie(null)
-    if (modus === 'gebied') {
-      setGeselecteerdeVenue(null)
-      setVenueZoek('')
-      setVenueResultaten([])
-    }
-  }
 
   function onVenueZoekChange(waarde: string) {
     setVenueZoek(waarde)
@@ -141,20 +115,17 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
           photoUrl = await uploadEventPhoto(fd)
         }
 
-        const locatieLat = locatieModus === 'venue' ? (geselecteerdeVenue?.lat ?? null) : (gebiedLocatie?.lat ?? null)
-        const locatieLng = locatieModus === 'venue' ? (geselecteerdeVenue?.lng ?? null) : (gebiedLocatie?.lng ?? null)
-
         const input: EventInput = {
           title: titel.trim(),
           description: omschrijving.trim() || null,
           starts_at: new Date(startsAt).toISOString(),
-          venue_id: locatieModus === 'venue' ? (geselecteerdeVenue?.id ?? null) : null,
+          venue_id: geselecteerdeVenue?.id ?? null,
           city: stad || null,
           ticket_url: ticketUrl.trim() || null,
           artists: null,
           photo_url: photoUrl,
-          lat: locatieLat,
-          lng: locatieLng,
+          lat: geselecteerdeVenue?.lat ?? null,
+          lng: geselecteerdeVenue?.lng ?? null,
           max_attendees: maxDeelnemers ? parseInt(maxDeelnemers) : null,
           status,
           creator_id: currentUserId,
@@ -262,93 +233,57 @@ export function EventFormulier({ uitgaansgebieden, currentUserId, event }: Props
             </select>
           </div>
 
-          {/* Modus toggle */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Soort locatie</label>
-            <div className="flex rounded-lg overflow-hidden border border-gray-700 w-fit">
-              {([['venue', 'Venue'], ['gebied', 'Gebied tekenen']] as const).map(([modus, label]) => (
-                <button
-                  key={modus}
-                  onClick={() => wisselLocatieModus(modus)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    locatieModus === modus
-                      ? 'bg-opstap-orange-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Venue zoeken */}
-          {locatieModus === 'venue' && (
-            <div>
-              {geselecteerdeVenue ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-gray-800 border border-opstap-orange-600/40 rounded-lg px-3 py-2.5">
-                    <span className="text-sm text-white font-medium">{geselecteerdeVenue.name}</span>
-                    <button onClick={verwijderVenue} className="text-gray-400 hover:text-white transition-colors ml-2">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {geselecteerdeVenue.lat !== 0 && (
-                    <VenueKaart key={geselecteerdeVenue.id} lat={geselecteerdeVenue.lat} lng={geselecteerdeVenue.lng} />
-                  )}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Venue</label>
+            {geselecteerdeVenue ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-gray-800 border border-opstap-orange-600/40 rounded-lg px-3 py-2.5">
+                  <span className="text-sm text-white font-medium">{geselecteerdeVenue.name}</span>
+                  <button onClick={verwijderVenue} className="text-gray-400 hover:text-white transition-colors ml-2">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              ) : (
+                {geselecteerdeVenue.lat !== 0 && (
+                  <VenueKaart key={geselecteerdeVenue.id} lat={geselecteerdeVenue.lat} lng={geselecteerdeVenue.lng} />
+                )}
+              </div>
+            ) : (
+              <div className="relative">
                 <div className="relative">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    <input
-                      value={venueZoek}
-                      onChange={e => onVenueZoekChange(e.target.value)}
-                      placeholder={stad ? `Venue zoeken in ${stad}...` : 'Selecteer eerst een stad'}
-                      className={`${invoerKlasse} pl-9`}
-                    />
-                    {venueZoekBezig && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />
-                    )}
-                  </div>
-                  {venueResultaten.length > 0 && (
-                    <ul className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-                      {venueResultaten.map(v => (
-                        <li key={v.id}>
-                          <button
-                            onClick={() => kiesVenue(v)}
-                            className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-gray-700 transition-colors flex items-center gap-2"
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            {v.name}
-                            {v.type && <span className="text-xs text-gray-500 ml-auto">{v.type}</span>}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {venueZoek.trim() && !venueZoekBezig && venueResultaten.length === 0 && (
-                    <p className="mt-2 text-xs text-gray-500">Geen venues gevonden.</p>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  <input
+                    value={venueZoek}
+                    onChange={e => onVenueZoekChange(e.target.value)}
+                    placeholder={stad ? `Venue zoeken in ${stad}...` : 'Selecteer eerst een stad'}
+                    className={`${invoerKlasse} pl-9`}
+                  />
+                  {venueZoekBezig && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />
                   )}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Gebied tekenen */}
-          {locatieModus === 'gebied' && (
-            <div>
-              {gebiedLocatie && (
-                <p className="text-xs text-emerald-400 mb-2">
-                  Gebied vastgelegd — middelpunt {gebiedLocatie.lat.toFixed(4)}, {gebiedLocatie.lng.toFixed(4)}
-                </p>
-              )}
-              <GebiedKiezer
-                cityCenter={geselecteerdGebied ? { lat: geselecteerdGebied.centrum_lat, lng: geselecteerdGebied.centrum_lng } : undefined}
-                onChange={setGebiedLocatie}
-              />
-            </div>
-          )}
+                {venueResultaten.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
+                    {venueResultaten.map(v => (
+                      <li key={v.id}>
+                        <button
+                          onClick={() => kiesVenue(v)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-gray-700 transition-colors flex items-center gap-2"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          {v.name}
+                          {v.type && <span className="text-xs text-gray-500 ml-auto">{v.type}</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {venueZoek.trim() && !venueZoekBezig && venueResultaten.length === 0 && (
+                  <p className="mt-2 text-xs text-gray-500">Geen venues gevonden.</p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Foto */}
