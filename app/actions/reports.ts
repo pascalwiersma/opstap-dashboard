@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function adminClient() {
   return createClient(
@@ -23,6 +24,7 @@ export type Rapport = {
 }
 
 export async function getRapporten(status?: RapportStatus): Promise<Rapport[]> {
+  await eisPermissie('meldingen', 'zien')
   const db = adminClient()
 
   let query = db
@@ -42,9 +44,15 @@ export async function getRapporten(status?: RapportStatus): Promise<Rapport[]> {
 }
 
 export async function waarschuwGebruiker(reportId: string, reportedId: string, pushToken: string | null) {
+  await eisPermissie('meldingen', 'bewerken')
   const db = adminClient()
 
   await db.from('reports').update({ status: 'in_behandeling' }).eq('id', reportId)
+  await db.from('user_warnings').insert({
+    user_id: reportedId,
+    reason: 'Waarschuwing van OpStap',
+    detail: 'Houd je aan de community richtlijnen.',
+  })
 
   if (pushToken?.startsWith('ExponentPushToken[') || pushToken?.startsWith('ExpoPushToken[')) {
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -59,10 +67,13 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
     })
   }
 
-  revalidatePath('/rapporten')
+  revalidatePath('/meldingen')
+  revalidatePath('/leden')
+  revalidatePath(`/leden/${reportedId}`)
 }
 
 export async function banGebruiker(reportId: string, reportedId: string) {
+  await eisPermissie('meldingen', 'bewerken')
   const db = adminClient()
 
   await Promise.all([
@@ -70,10 +81,13 @@ export async function banGebruiker(reportId: string, reportedId: string) {
     db.from('reports').update({ status: 'afgehandeld' }).eq('id', reportId),
   ])
 
-  revalidatePath('/rapporten')
+  revalidatePath('/meldingen')
+  revalidatePath('/leden')
+  revalidatePath(`/leden/${reportedId}`)
 }
 
 export async function sluitRapport(reportId: string) {
+  await eisPermissie('meldingen', 'bewerken')
   await adminClient().from('reports').update({ status: 'afgehandeld' }).eq('id', reportId)
-  revalidatePath('/rapporten')
+  revalidatePath('/meldingen')
 }

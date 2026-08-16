@@ -1,7 +1,8 @@
 'use client'
 
+import { totpStatusVoorHuidigeSessie, verifieerTotpLogin } from '@/app/actions/totp'
 import { createBrowserClient } from '@supabase/ssr'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 function normalizePhone(input: string): string | null {
@@ -13,16 +14,19 @@ function normalizePhone(input: string): string | null {
 
 const RESEND_COOLDOWN = 60
 
+type Stap = 'phone' | 'code' | 'totp'
+
 function LoginForm() {
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
+  const searchParams = useSearchParams()
+  const [step, setStep] = useState<Stap>(searchParams.get('stap') === 'totp' ? 'totp' : 'phone')
   const [phone, setPhone] = useState('')
   const [normalizedPhone, setNormalizedPhone] = useState('')
+  const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
+  const [totpCode, setTotpCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const urlError = searchParams.get('error')
@@ -44,6 +48,35 @@ function LoginForm() {
         return c - 1
       })
     }, 1000)
+  }
+
+  async function naAuthSucces(userId: string) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('dashboard_role')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.dashboard_role) {
+      await supabase.auth.signOut()
+      setError('Geen toegang. Neem contact op met de beheerder.')
+      setLoading(false)
+      return
+    }
+
+    const status = await totpStatusVoorHuidigeSessie()
+    if (status === 'setup') {
+      window.location.href = '/login/2fa-setup'
+      return
+    }
+    if (status === 'code') {
+      setTotpCode('')
+      setStep('totp')
+      setLoading(false)
+      return
+    }
+
+    window.location.href = '/'
   }
 
   async function handleSendCode(e: React.FormEvent) {
@@ -68,6 +101,35 @@ function LoginForm() {
     setNormalizedPhone(normalized)
     setStep('code')
     startCooldown()
+  }
+
+  async function handlePasswordLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    const normalized = normalizePhone(phone)
+    if (!normalized) {
+      setError('Vul een geldig Nederlands mobiel nummer in.')
+      return
+    }
+    if (!password) {
+      setError('Vul je wachtwoord in, of vraag een SMS-code aan.')
+      return
+    }
+
+    setLoading(true)
+    const { data, error: wachtwoordError } = await supabase.auth.signInWithPassword({
+      phone: normalized,
+      password,
+    })
+
+    if (wachtwoordError || !data.user) {
+      setError('Ongeldig telefoonnummer of wachtwoord.')
+      setLoading(false)
+      return
+    }
+
+    await naAuthSucces(data.user.id)
   }
 
   async function handleResend() {
@@ -97,20 +159,20 @@ function LoginForm() {
       return
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('dashboard_role')
-      .eq('id', data.user.id)
-      .single()
+    await naAuthSucces(data.user.id)
+  }
 
-    if (!profile?.dashboard_role) {
-      await supabase.auth.signOut()
-      setError('Geen toegang. Neem contact op met de beheerder.')
+  async function handleTotp(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await verifieerTotpLogin(totpCode)
+      window.location.href = '/'
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ongeldige of verlopen code.')
       setLoading(false)
-      return
     }
-
-    window.location.href = '/'
   }
 
   const displayError =
@@ -137,38 +199,74 @@ function LoginForm() {
             </div>
           )}
 
-          {step === 'phone' ? (
-            <form onSubmit={handleSendCode} className="space-y-4">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1.5">
-                  Telefoonnummer
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-opstap-orange-500 focus:border-transparent transition"
-                  placeholder="06 12345678"
-                />
+          {step === 'phone' && (
+            <div className="space-y-6">
+              <form onSubmit={handleSendCode} className="space-y-4">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Telefoonnummer
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-opstap-orange-500 focus:border-transparent transition"
+                    placeholder="06 12345678"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:bg-opstap-orange-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition mt-2"
+                >
+                  {loading ? 'Code versturen...' : 'SMS-code versturen'}
+                </button>
+              </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-800" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-gray-900 px-2 text-gray-500">of met wachtwoord</span>
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:bg-opstap-orange-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition mt-2"
-              >
-                {loading ? 'Code versturen...' : 'Code versturen'}
-              </button>
-            </form>
-          ) : (
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Wachtwoord
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-opstap-orange-500 focus:border-transparent transition"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
+                >
+                  {loading ? 'Inloggen...' : 'Inloggen met wachtwoord'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {step === 'code' && (
             <form onSubmit={handleVerify} className="space-y-4">
               <p className="text-sm text-gray-400">We hebben een code gestuurd naar {phone}.</p>
 
               <div>
                 <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-1.5">
-                  Verificatiecode
+                  SMS-verificatiecode
                 </label>
                 <input
                   id="code"
@@ -206,6 +304,39 @@ function LoginForm() {
                 className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition"
               >
                 Ander telefoonnummer
+              </button>
+            </form>
+          )}
+
+          {step === 'totp' && (
+            <form onSubmit={handleTotp} className="space-y-4">
+              <p className="text-sm text-gray-400">
+                Voer de 6-cijferige code uit je authenticator in.
+              </p>
+
+              <div>
+                <label htmlFor="totp" className="block text-sm font-medium text-gray-300 mb-1.5">
+                  2FA-code
+                </label>
+                <input
+                  id="totp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-opstap-orange-500 focus:border-transparent transition tracking-widest text-center text-lg"
+                  placeholder="• • • • • •"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 bg-opstap-orange-600 hover:bg-opstap-orange-500 disabled:bg-opstap-orange-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition mt-2"
+              >
+                {loading ? 'Bevestigen...' : 'Bevestigen'}
               </button>
             </form>
           )}

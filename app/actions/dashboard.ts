@@ -1,6 +1,7 @@
 'use server'
 
 import { supabaseAdmin } from '@/lib/supabase'
+import { eisPermissie } from '@/lib/eis-permissie'
 
 function dagLabels(days = 30) {
   const labels: Record<string, number> = {}
@@ -24,6 +25,7 @@ function toChartData(counts: Record<string, number>) {
 // ── Admin: globale statistieken ───────────────────────────────────────────────
 
 export async function getAdminStats() {
+  await eisPermissie('overzicht', 'zien')
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const todayStart = new Date().toISOString().slice(0, 10)
 
@@ -36,7 +38,6 @@ export async function getAdminStats() {
     { count: confirmedMatches },
     { count: venues },
     { count: events },
-    { count: areas },
   ] = await Promise.all([
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).is('dashboard_role', null),
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).is('dashboard_role', null).gte('created_at', weekAgo),
@@ -46,7 +47,6 @@ export async function getAdminStats() {
     supabaseAdmin.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'confirmed').gte('created_at', weekAgo),
     supabaseAdmin.from('venues').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('city_events').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('meeting_areas').select('*', { count: 'exact', head: true }),
   ])
 
   return {
@@ -58,11 +58,11 @@ export async function getAdminStats() {
     confirmedMatches: confirmedMatches ?? 0,
     venues: venues ?? 0,
     events: events ?? 0,
-    areas: areas ?? 0,
   }
 }
 
 export async function getAdminChartData() {
+  await eisPermissie('overzicht', 'zien')
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const [{ data: users }, { data: checkins }] = await Promise.all([
@@ -98,18 +98,17 @@ export async function getAdminChartData() {
 // ── Vertegenwoordiger: provincie-statistieken ─────────────────────────────────
 
 export async function getProvincieStats(province_id: string) {
+  await eisPermissie('overzicht', 'zien')
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const [
     { count: venues },
     { count: events },
-    { count: areas },
     { count: registratiesTotal },
     { count: registratiesWeek },
   ] = await Promise.all([
     supabaseAdmin.from('venues').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
     supabaseAdmin.from('city_events').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
-    supabaseAdmin.from('meeting_areas').select('*', { count: 'exact', head: true }).eq('province_id', province_id),
     supabaseAdmin
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
@@ -138,13 +137,13 @@ export async function getProvincieStats(province_id: string) {
   return {
     venues: venues ?? 0,
     events: events ?? 0,
-    areas: areas ?? 0,
     registratiesTotal: registratiesTotal ?? 0,
     registratiesWeek: registratiesWeek ?? 0,
   }
 }
 
 export async function getProvincieChartData(province_id: string) {
+  await eisPermissie('overzicht', 'zien')
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const { data: eventIds } = await supabaseAdmin

@@ -24,9 +24,14 @@ function formatDatum(iso: string) {
   return new Date(iso).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-type Props = { initialEvents: Event[] }
+type Props = {
+  initialEvents: Event[]
+  kanToevoegen: boolean
+  kanBewerken: boolean
+  kanVerwijderen: boolean
+}
 
-export function EventsLijst({ initialEvents }: Props) {
+export function EventsLijst({ initialEvents, kanToevoegen, kanBewerken, kanVerwijderen }: Props) {
   const [events, setEvents] = useState(initialEvents)
   const router = useRouter()
 
@@ -45,13 +50,15 @@ export function EventsLijst({ initialEvents }: Props) {
     <>
       <div className="flex items-center justify-between mb-6">
         <p className="text-gray-400 text-sm">{events.length} event{events.length !== 1 ? 's' : ''}</p>
+        {kanToevoegen && (
         <button
           onClick={() => router.push('/events-beheer/nieuw')}
           className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Event toevoegen
+          Evenement toevoegen
         </button>
+        )}
       </div>
 
       {events.length === 0 ? (
@@ -67,6 +74,7 @@ export function EventsLijst({ initialEvents }: Props) {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stad</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Venue</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Start</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Einde</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -80,6 +88,9 @@ export function EventsLijst({ initialEvents }: Props) {
                   <td className="px-5 py-3.5 text-gray-300">{event.city ?? <span className="text-gray-600">—</span>}</td>
                   <td className="px-5 py-3.5 text-gray-300">{event.venue_name ?? <span className="text-gray-600">—</span>}</td>
                   <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">{formatDatum(event.starts_at)}</td>
+                  <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">
+                    {event.ends_at ? formatDatum(event.ends_at) : <span className="text-gray-600">—</span>}
+                  </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${statusKleur(event.status)}`}>
                       {statusLabel(event.status)}
@@ -87,6 +98,7 @@ export function EventsLijst({ initialEvents }: Props) {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-1.5">
+                      {kanBewerken && (
                       <button
                         onClick={() => router.push(`/events-beheer/${event.id}/bewerken`)}
                         className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
@@ -94,6 +106,8 @@ export function EventsLijst({ initialEvents }: Props) {
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
+                      )}
+                      {kanVerwijderen && (
                       <button
                         onClick={() => handleVerwijder(event)}
                         className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
@@ -101,6 +115,7 @@ export function EventsLijst({ initialEvents }: Props) {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

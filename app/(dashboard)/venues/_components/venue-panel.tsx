@@ -1,9 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, Trash2, Save, MapPin, ImagePlus, Loader2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { X, Trash2, Save, ImagePlus, Loader2 } from 'lucide-react'
 import type { Venue, VenueInput, VenueType, VenuePhoto } from '@/app/actions/venues'
 import { getVenuePhotos, uploadVenuePhoto, deleteVenuePhoto } from '@/app/actions/venues'
+
+const OmschrijvingEditor = dynamic(
+  () => import('../../events-beheer/_components/omschrijving-editor').then(m => m.OmschrijvingEditor),
+  { ssr: false, loading: () => <div className="w-full h-52 rounded-lg bg-gray-800 animate-pulse" /> }
+)
 
 type Mode = 'create' | 'edit'
 
@@ -16,10 +22,11 @@ type Props = {
   onSave: (input: VenueInput) => Promise<void>
   onDelete?: () => Promise<void>
   onClose: () => void
+  kanOpslaan?: boolean
 }
 
-const DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
-const DAY_LABELS: Record<string, string> = {
+const DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const
+const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
   ma: 'Maandag', di: 'Dinsdag', wo: 'Woensdag', do: 'Donderdag',
   vr: 'Vrijdag', za: 'Zaterdag', zo: 'Zondag',
 }
@@ -30,13 +37,44 @@ const TYPE_OPTIONS: { value: VenueType; label: string }[] = [
   { value: 'cafe', label: 'Café' },
 ]
 
-export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, onClose }: Props) {
+const TIJDSTAPPEN: string[] = Array.from({ length: 24 * 4 }, (_, i) => {
+  const h = Math.floor(i / 4)
+  const m = (i % 4) * 15
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+})
+
+type DagTijden = { open: boolean; van: string; tot: string }
+
+function parseDagWaarde(raw: string | undefined): DagTijden {
+  if (!raw || raw.toLowerCase() === 'gesloten') {
+    return { open: false, van: '16:00', tot: '01:00' }
+  }
+  const matches = raw.match(/(\d{1,2}):(\d{2})/g)
+  if (!matches || matches.length < 2) {
+    return { open: false, van: '16:00', tot: '01:00' }
+  }
+  const normaliseer = (t: string) => {
+    const [h, m] = t.split(':')
+    return `${h.padStart(2, '0')}:${m}`
+  }
+  return { open: true, van: normaliseer(matches[0]), tot: normaliseer(matches[1]) }
+}
+
+function startTijden(hours: Record<string, string> | null | undefined): Record<(typeof DAYS)[number], DagTijden> {
+  const init = {} as Record<(typeof DAYS)[number], DagTijden>
+  for (const day of DAYS) {
+    init[day] = parseDagWaarde(hours?.[day])
+  }
+  return init
+}
+
+export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, onClose, kanOpslaan = true }: Props) {
   const [name, setName] = useState(venue?.name ?? '')
   const [type, setType] = useState<VenueType | null>(venue?.type ?? null)
   const [description, setDescription] = useState(venue?.description ?? '')
   const [active, setActive] = useState(venue?.active ?? true)
-  const [hours, setHours] = useState<Record<string, string>>(
-    venue?.opening_hours ?? {}
+  const [hours, setHours] = useState<Record<(typeof DAYS)[number], DagTijden>>(
+    () => startTijden(venue?.opening_hours ?? null)
   )
   const [photos, setPhotos] = useState<VenuePhoto[]>([])
   const [uploading, setUploading] = useState(false)
@@ -55,6 +93,10 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
   const coordLat = dragPos?.lat ?? venue?.lat ?? lat ?? 0
   const coordLng = dragPos?.lng ?? venue?.lng ?? lng ?? 0
 
+  function zetDag(day: (typeof DAYS)[number], patch: Partial<DagTijden>) {
+    setHours(h => ({ ...h, [day]: { ...h[day], ...patch } }))
+  }
+
   async function handleSave() {
     if (!name.trim()) {
       setError('Naam is verplicht.')
@@ -63,14 +105,20 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
     setSaving(true)
     setError(null)
     try {
+      const opening_hours: Record<string, string> = {}
+      for (const day of DAYS) {
+        if (hours[day].open) {
+          opening_hours[day] = `${hours[day].van}–${hours[day].tot}`
+        }
+      }
       await onSave({
         name: name.trim(),
         lat: coordLat,
         lng: coordLng,
         type,
-        description: description.trim() || null,
+        description: description || null,
         active,
-        opening_hours: Object.keys(hours).length ? hours : null,
+        opening_hours: Object.keys(opening_hours).length ? opening_hours : null,
       })
       onClose()
     } catch (e) {
@@ -124,8 +172,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 w-96 shrink-0 border-l border-gray-800 overflow-hidden">
-      {/* Header */}
+    <div className="flex flex-col h-full bg-gray-900 w-[26rem] shrink-0 border-l border-gray-800 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 shrink-0">
         <h2 className="text-white font-semibold text-base">
           {mode === 'create' ? 'Nieuw venue' : 'Venue bewerken'}
@@ -135,17 +182,9 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
         </button>
       </div>
 
-      {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        {/* Coördinaten */}
-        <div className="flex items-center gap-2 text-xs bg-gray-800 rounded-lg px-3 py-2">
-          <MapPin className="w-3.5 h-3.5 text-opstap-orange-400 shrink-0" />
-          <span className="text-gray-400 tabular-nums">{coordLat.toFixed(6)}, {coordLng.toFixed(6)}</span>
-          {dragPos && <span className="ml-auto text-opstap-orange-400 font-medium">Versleept</span>}
-        </div>
-        <p className="text-xs text-gray-600">Sleep de pin op de kaart om de locatie te wijzigen</p>
+        <p className="text-xs text-gray-500">Sleep de pin op de kaart om de locatie te wijzigen.</p>
 
-        {/* Naam */}
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1.5">Naam *</label>
           <input
@@ -156,7 +195,6 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           />
         </div>
 
-        {/* Type */}
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
           <div className="flex gap-2">
@@ -176,37 +214,66 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           </div>
         </div>
 
-        {/* Omschrijving */}
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1.5">Omschrijving</label>
-          <textarea
+          <OmschrijvingEditor
             value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={3}
-            placeholder="Korte beschrijving..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors resize-none"
+            onChange={setDescription}
+            placeholder="Sfeer, muziek, wat je er kunt verwachten..."
+            height={220}
           />
         </div>
 
-        {/* Openingstijden */}
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Openingstijden</label>
-          <div className="space-y-2">
-            {DAYS.map(day => (
-              <div key={day} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-7 shrink-0">{DAY_LABELS[day].slice(0, 2)}</span>
-                <input
-                  value={hours[day] ?? ''}
-                  onChange={e => setHours(h => ({ ...h, [day]: e.target.value }))}
-                  placeholder="22:00–04:00 of gesloten"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-opstap-orange-500 transition-colors"
-                />
-              </div>
-            ))}
+          <label className="block text-xs font-medium text-gray-400 mb-2">Openingstijden</label>
+          <div className="space-y-1.5">
+            {DAYS.map(day => {
+              const dag = hours[day]
+              return (
+                <div key={day} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => zetDag(day, { open: !dag.open })}
+                    className={`relative w-9 h-5 rounded-full shrink-0 transition-colors ${dag.open ? 'bg-opstap-orange-600' : 'bg-gray-700'}`}
+                    aria-pressed={dag.open}
+                    aria-label={`${DAY_LABELS[day]} ${dag.open ? 'open' : 'gesloten'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${dag.open ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                  <span className={`text-xs w-20 shrink-0 ${dag.open ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {DAY_LABELS[day]}
+                  </span>
+                  {dag.open ? (
+                    <>
+                      <select
+                        value={dag.van}
+                        onChange={e => zetDag(day, { van: e.target.value })}
+                        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-opstap-orange-500"
+                      >
+                        {(TIJDSTAPPEN.includes(dag.van) ? TIJDSTAPPEN : [dag.van, ...TIJDSTAPPEN]).map(t => (
+                          <option key={`${day}-van-${t}`} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <span className="text-gray-600 text-xs shrink-0">–</span>
+                      <select
+                        value={dag.tot}
+                        onChange={e => zetDag(day, { tot: e.target.value })}
+                        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-opstap-orange-500"
+                      >
+                        {(TIJDSTAPPEN.includes(dag.tot) ? TIJDSTAPPEN : [dag.tot, ...TIJDSTAPPEN]).map(t => (
+                          <option key={`${day}-tot-${t}`} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-600">Gesloten</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Foto's — alleen in edit modus */}
         {mode === 'edit' && (
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-2">Foto&apos;s</label>
@@ -248,7 +315,6 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           </div>
         )}
 
-        {/* Actief */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-300">Actief in de app</span>
           <button
@@ -264,7 +330,6 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
         )}
       </div>
 
-      {/* Footer */}
       <div className="shrink-0 px-5 py-4 border-t border-gray-800 flex gap-2">
         {mode === 'edit' && onDelete && (
           <button
@@ -276,6 +341,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
             {deleting ? 'Verwijderen...' : 'Verwijderen'}
           </button>
         )}
+        {kanOpslaan && (
         <button
           onClick={handleSave}
           disabled={saving}
@@ -284,6 +350,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           <Save className="w-4 h-4" />
           {saving ? 'Opslaan...' : 'Opslaan'}
         </button>
+        )}
       </div>
     </div>
   )
