@@ -37,3 +37,10 @@ export function totpGeldig(secret: string, token: string): boolean {
 export function totpHuidigeCode(secret: string): string {
   return totpVoor(secret, ISSUER).generate()
 }
+
+export function totpIsIngeschakeld(row: {
+  verified?: boolean | null
+  enabled?: boolean | null
+} | null | undefined): boolean {
+  return row?.verified === true && row?.enabled === true
+}

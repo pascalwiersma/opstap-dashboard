@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Gebruiker } from '@/app/actions/gebruikers'
 import { updateGebruiker } from '@/app/actions/gebruikers'
-import { enrollTotp, resetTotp, type TotpEnrollment } from '@/app/actions/totp'
+import { bevestigTotpVoorGebruiker, disableTotp, enrollTotp, resetTotp, type TotpEnrollment } from '@/app/actions/totp'
+import { TotpQrGeheim } from '@/app/_components/totp-qr-geheim'
 import { splitsNaam } from '@/lib/naam'
 import { ROL_OPTIES, type DashboardRol } from '@/lib/dashboard-rollen'
-import { ArrowLeft, Check, ChevronDown, Copy, Loader2, Save, Shield } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, Save, Shield } from 'lucide-react'
 
 const invoerKlasse = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500 transition-colors'
 
@@ -26,7 +27,8 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
   const [totpFout, setTotpFout] = useState('')
   const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null)
   const [totpActief, setTotpActief] = useState(gebruiker.totp_ingeschakeld)
-  const [gekopieerd, setGekopieerd] = useState(false)
+  const [verificatiecode, setVerificatiecode] = useState('')
+  const [bevestigenBezig, setBevestigenBezig] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,16 +53,17 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
   }
 
   async function handleTotp(regenereren: boolean) {
-    if (regenereren && !confirm('Nieuwe 2FA-code genereren? De oude code werkt dan niet meer.')) {
+    if (regenereren && !confirm('Nieuwe 2FA-code genereren? 2FA gaat uit tot je een verificatiecode invoert.')) {
       return
     }
     setTotpBezig(true)
     setTotpFout('')
     setEnrollment(null)
+    setVerificatiecode('')
     try {
       const resultaat = regenereren ? await resetTotp(gebruiker.id) : await enrollTotp(gebruiker.id)
       setEnrollment(resultaat)
-      setTotpActief(true)
+      setTotpActief(false)
     } catch (err) {
       setTotpFout(err instanceof Error ? err.message : '2FA genereren is mislukt.')
     } finally {
@@ -68,11 +71,37 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
     }
   }
 
-  async function kopieerSecret() {
-    if (!enrollment) return
-    await navigator.clipboard.writeText(enrollment.secret)
-    setGekopieerd(true)
-    window.setTimeout(() => setGekopieerd(false), 2000)
+  async function handleBevestigTotp() {
+    setBevestigenBezig(true)
+    setTotpFout('')
+    try {
+      await bevestigTotpVoorGebruiker(gebruiker.id, verificatiecode)
+      setTotpActief(true)
+      setEnrollment(null)
+      setVerificatiecode('')
+    } catch (err) {
+      setTotpFout(err instanceof Error ? err.message : 'Ongeldige of verlopen code.')
+    } finally {
+      setBevestigenBezig(false)
+    }
+  }
+
+  async function handleUitzetten() {
+    if (!confirm('2FA uitzetten? Bij de volgende login moet deze gebruiker 2FA opnieuw instellen.')) {
+      return
+    }
+    setTotpBezig(true)
+    setTotpFout('')
+    try {
+      await disableTotp(gebruiker.id)
+      setTotpActief(false)
+      setEnrollment(null)
+      setVerificatiecode('')
+    } catch (err) {
+      setTotpFout(err instanceof Error ? err.message : '2FA uitzetten is mislukt.')
+    } finally {
+      setTotpBezig(false)
+    }
   }
 
   return (
@@ -166,56 +195,77 @@ export function BewerkGebruikerForm({ gebruiker }: { gebruiker: Gebruiker }) {
       <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">2FA (TOTP)</h2>
         <p className="text-xs text-gray-500">
-          Scan de QR in een authenticator. Issuer: OpStap.
+          Optioneel: genereer een QR. 2FA staat pas aan na een geldige verificatiecode. Anders doet de gebruiker dit bij de eerste login. Als je 2FA uitzet, moet die het opnieuw opzetten.
         </p>
         {totpActief && !enrollment && (
           <p className="text-sm text-emerald-400">2FA is actief voor deze gebruiker.</p>
+        )}
+        {enrollment && (
+          <p className="text-sm text-amber-400">2FA is nog niet aan. Voer een verificatiecode in om het in te schakelen.</p>
         )}
         {totpFout && (
           <p className="text-xs text-red-400 bg-red-950/40 border border-red-800/50 rounded-lg px-4 py-3">{totpFout}</p>
         )}
         {enrollment && (
-          <div className="space-y-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={enrollment.qrDataUrl}
-              alt="TOTP QR-code"
-              className="w-60 h-60 rounded-xl bg-white p-2"
-            />
+          <div className="space-y-4">
+            <TotpQrGeheim secret={enrollment.secret} qrDataUrl={enrollment.qrDataUrl} />
             <div>
-              <p className="text-xs font-medium text-gray-400 mb-1.5">Geheime code</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white tracking-wider break-all">
-                  {enrollment.secret}
-                </code>
-                <button
-                  type="button"
-                  onClick={kopieerSecret}
-                  className="shrink-0 p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition-colors"
-                  title="Kopiëren"
-                >
-                  {gekopieerd ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1.5">
-                Deze code wordt alleen nu getoond. Daarna moet je opnieuw genereren.
-              </p>
+              <label htmlFor="verificatiecode" className="block text-xs font-medium text-gray-400 mb-1.5">
+                Verificatiecode
+              </label>
+              <input
+                id="verificatiecode"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={verificatiecode}
+                onChange={e => setVerificatiecode(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void handleBevestigTotp()
+                  }
+                }}
+                className={invoerKlasse}
+                placeholder="6 cijfers"
+              />
             </div>
+            <button
+              type="button"
+              onClick={handleBevestigTotp}
+              disabled={bevestigenBezig || verificatiecode.replace(/\s/g, '').length !== 6}
+              className="flex items-center gap-2 px-4 py-2.5 bg-opstap-orange-600 hover:bg-opstap-orange-500 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {bevestigenBezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+              {bevestigenBezig ? 'Bevestigen...' : '2FA inschakelen'}
+            </button>
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => handleTotp(totpActief)}
-          disabled={totpBezig}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          {totpBezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-          {totpBezig
-            ? 'Genereren...'
-            : totpActief
-              ? 'Nieuwe 2FA-code genereren'
-              : '2FA instellen'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleTotp(totpActief || !!enrollment)}
+            disabled={totpBezig}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {totpBezig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+            {totpBezig
+              ? 'Genereren...'
+              : totpActief || enrollment
+                ? 'Nieuwe 2FA-code genereren'
+                : '2FA instellen'}
+          </button>
+          {totpActief && !enrollment && (
+            <button
+              type="button"
+              onClick={handleUitzetten}
+              disabled={totpBezig}
+              className="px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-colors disabled:opacity-50"
+            >
+              2FA uitzetten
+            </button>
+          )}
+        </div>
       </section>
 
       <div className="flex items-center justify-end gap-3 pb-8">
