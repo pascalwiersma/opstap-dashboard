@@ -82,9 +82,12 @@ async function enrollmentVoor(userId: string, label: string): Promise<TotpEnroll
     })
 
   if (error) throw new Error(error.message)
+  return enrollment
+}
+
+function revalidateGebruiker(userId: string) {
   revalidatePath('/gebruikers')
   revalidatePath(`/gebruikers/${userId}`)
-  return enrollment
 }
 
 async function bevestigGeheim(userId: string, code: string, bindSession: boolean): Promise<void> {
@@ -119,18 +122,21 @@ async function bevestigGeheim(userId: string, code: string, bindSession: boolean
     .eq('user_id', userId)
 
   if (error) throw new Error(error.message)
-  revalidatePath('/gebruikers')
-  revalidatePath(`/gebruikers/${userId}`)
+  revalidateGebruiker(userId)
 }
 
 export async function enrollTotp(userId: string): Promise<TotpEnrollment> {
   await eisAdmin()
-  return enrollmentVoor(userId, await totpLabel(userId))
+  const enrollment = await enrollmentVoor(userId, await totpLabel(userId))
+  revalidateGebruiker(userId)
+  return enrollment
 }
 
 export async function resetTotp(userId: string): Promise<TotpEnrollment> {
   await eisAdmin()
-  return enrollmentVoor(userId, await totpLabel(userId))
+  const enrollment = await enrollmentVoor(userId, await totpLabel(userId))
+  revalidateGebruiker(userId)
+  return enrollment
 }
 
 export async function bevestigTotpVoorGebruiker(userId: string, code: string): Promise<void> {
@@ -145,8 +151,7 @@ export async function disableTotp(userId: string): Promise<void> {
     .delete()
     .eq('user_id', userId)
   if (error) throw new Error(error.message)
-  revalidatePath('/gebruikers')
-  revalidatePath(`/gebruikers/${userId}`)
+  revalidateGebruiker(userId)
 }
 
 export async function startTotpSetup(): Promise<TotpEnrollment | { alIngeschakeld: true }> {
