@@ -325,6 +325,7 @@ export function InteressesLijst({
         </div>
       ) : (
         <DndContext
+          id="interesses"
           sensors={sensors}
           collisionDetection={closestCorners}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
