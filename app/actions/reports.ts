@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { eisPermissie } from '@/lib/eis-permissie'
+import { stuurExpoPushNaarToken } from '@/lib/expo-push'
 
 function adminClient() {
   return createClient(
@@ -54,18 +55,12 @@ export async function waarschuwGebruiker(reportId: string, reportedId: string, p
     detail: 'Houd je aan de community richtlijnen.',
   })
 
-  if (pushToken?.startsWith('ExponentPushToken[') || pushToken?.startsWith('ExpoPushToken[')) {
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify([{
-        to: pushToken,
-        title: 'Waarschuwing van OpStap',
-        body: 'Je hebt een waarschuwing ontvangen van OpStap. Houd je aan de community richtlijnen.',
-        sound: 'default',
-      }]),
-    })
-  }
+  await stuurExpoPushNaarToken(
+    pushToken,
+    'Waarschuwing van OpStap',
+    'Je hebt een waarschuwing ontvangen van OpStap. Houd je aan de community richtlijnen.',
+    { type: 'warning' },
+  )
 
   revalidatePath('/meldingen')
   revalidatePath('/leden')

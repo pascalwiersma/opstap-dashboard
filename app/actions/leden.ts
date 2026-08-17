@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import { eisPermissie } from '@/lib/eis-permissie'
+import { stuurExpoPushNaarToken } from '@/lib/expo-push'
 import { revalidatePath } from 'next/cache'
 
 export type LidSamenvatting = {
@@ -305,19 +306,7 @@ export async function getLid(id: string): Promise<LidDetail | null> {
 
 async function stuurWaarschuwingPush(userId: string, body: string) {
   const { data } = await supabaseAdmin.from('profiles').select('push_token').eq('id', userId).maybeSingle()
-  const token = data?.push_token
-  if (!token?.startsWith('ExponentPushToken[') && !token?.startsWith('ExpoPushToken[')) return
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify([{
-      to: token,
-      title: 'Waarschuwing van OpStap',
-      body,
-      sound: 'default',
-      data: { type: 'warning' },
-    }]),
-  })
+  await stuurExpoPushNaarToken(data?.push_token, 'Waarschuwing van OpStap', body, { type: 'warning' })
 }
 
 export async function waarschuwLid(userId: string, reason: string, detail?: string): Promise<void> {
