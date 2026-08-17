@@ -6,8 +6,8 @@ import Link from 'next/link'
 import type { LidDetail as Lid } from '@/app/actions/leden'
 import { banLid, unbanLid, waarschuwLid, verwijderLid } from '@/app/actions/leden'
 import { Ban, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
-
-const invoer = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-opstap-orange-500'
+import { RichtlijnRedenVelden } from '@/app/(dashboard)/_components/richtlijn-reden-velden'
+import { formatOpgeslagenReden, richtlijnLabel, vindRichtlijn } from '@/lib/community-richtlijnen'
 
 function formatDatum(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -51,7 +51,7 @@ export function LidDetail({
   huidigeUserId: string
 }) {
   const router = useRouter()
-  const [reden, setReden] = useState('')
+  const [redenCode, setRedenCode] = useState('')
   const [detail, setDetail] = useState('')
   const [bezig, setBezig] = useState('')
   const [fout, setFout] = useState('')
@@ -88,7 +88,6 @@ export function LidDetail({
           <p className="text-sm text-gray-400">
             {lid.username ? `@${lid.username}` : 'geen username'}
             {lid.age != null ? ` · ${lid.age}` : ''}
-            {lid.provincie ? ` · ${lid.provincie}` : ''}
           </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {lid.is_banned && (
@@ -142,25 +141,35 @@ export function LidDetail({
               <form
                 onSubmit={e => {
                   e.preventDefault()
+                  const regel = vindRichtlijn(redenCode)
+                  if (!regel) return
                   void run('waarschuw', async () => {
-                    await waarschuwLid(lid.id, reden, detail)
-                    setReden('')
+                    // Alleen de code opslaan; app toont NL/EN via vertalingen.
+                    await waarschuwLid(lid.id, regel.code, detail)
+                    setRedenCode('')
                     setDetail('')
                     setOk('Waarschuwing verstuurd.')
                   })
                 }}
                 className="space-y-2"
               >
-                <input value={reden} onChange={e => setReden(e.target.value)} placeholder="Reden (verplicht)" className={invoer} />
-                <textarea value={detail} onChange={e => setDetail(e.target.value)} placeholder="Toelichting (optioneel)" rows={3} className={invoer} />
+                <RichtlijnRedenVelden
+                  code={redenCode}
+                  onCode={setRedenCode}
+                  toelichting={detail}
+                  onToelichting={setDetail}
+                />
                 <button
                   type="submit"
-                  disabled={!!bezig || !reden.trim()}
+                  disabled={!!bezig || !redenCode}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600/20 text-amber-300 border border-amber-600/30 text-sm disabled:opacity-50"
                 >
                   {bezig === 'waarschuw' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
                   Waarschuwen
                 </button>
+                <p className="text-xs text-gray-500">
+                  In de app moet het lid 5 seconden een knop vasthouden (telefoon trilt) om te beloven dit niet meer te doen.
+                </p>
               </form>
 
               <div className="flex flex-wrap gap-2">
@@ -178,7 +187,12 @@ export function LidDetail({
                     type="button"
                     disabled={!!bezig || lid.id === huidigeUserId}
                     onClick={() => {
-                      if (!confirm(`Ban ${lid.name}? Die persoon kan daarna niet meer matchen of de app gebruiken.`)) return
+                      const regel = vindRichtlijn(redenCode)
+                      if (!regel) {
+                        setFout('Kies eerst een regel uit de community richtlijnen.')
+                        return
+                      }
+                      if (!confirm(`Ban ${lid.name} wegens ${richtlijnLabel(regel)}? Die persoon kan daarna niet meer matchen of de app gebruiken.`)) return
                       void run('ban', () => banLid(lid.id), () => setOk('Gebruiker geband.'))
                     }}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 text-red-400 border border-red-600/30 text-sm"
@@ -265,11 +279,11 @@ export function LidDetail({
             <ul className="space-y-2 text-sm">
               {lid.waarschuwingen.map(w => (
                 <li key={w.id} className="border-b border-gray-800 pb-2">
-                  <p className="text-gray-200">{w.reason}</p>
+                  <p className="text-gray-200">{formatOpgeslagenReden(w.reason, 'nl')}</p>
                   {w.detail && <p className="text-xs text-gray-400">{w.detail}</p>}
                   <p className="text-xs text-gray-500">
                     {formatDatum(w.created_at)}
-                    {w.read_at ? ' · gelezen' : ' · ongelezen'}
+                    {w.acknowledged_at ? ' · bevestigd in de app' : ' · wacht op bevestiging'}
                   </p>
                 </li>
               ))}

@@ -5,6 +5,7 @@ import { createSupabaseServerClient, getCurrentUser } from '@/lib/supabase-serve
 import { eisPermissie } from '@/lib/eis-permissie'
 import { authSessionId } from '@/lib/auth-session'
 import { nieuwTotpGeheim, totpGeldig, totpIsIngeschakeld, totpQrDataUrl, totpUri } from '@/lib/totp'
+import { totpTabelOntbreekt } from '@/lib/totp-status'
 import { revalidatePath } from 'next/cache'
 
 export type TotpEnrollment = {
@@ -20,10 +21,6 @@ type TotpRij = {
   verified: boolean
   enabled: boolean
   verified_session_id: string | null
-}
-
-function totpTabelOntbreekt(error: { code?: string; message: string }): boolean {
-  return error.code === 'PGRST205' || error.code === '42P01' || error.message.toLowerCase().includes('does not exist')
 }
 
 async function eisAdmin() {

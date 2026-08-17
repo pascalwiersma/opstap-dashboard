@@ -40,6 +40,7 @@ export function EventFormulier({ currentUserId, event }: Props) {
 
   const [titel, setTitel] = useState(event?.title ?? '')
   const [omschrijving, setOmschrijving] = useState(event?.description ?? '')
+  const [omschrijvingEn, setOmschrijvingEn] = useState(event?.description_en ?? '')
   const [startDatum, setStartDatum] = useState(start.datum)
   const [startTijd, setStartTijd] = useState(start.tijd)
   const [eindDatum, setEindDatum] = useState(eind.datum)
@@ -48,9 +49,17 @@ export function EventFormulier({ currentUserId, event }: Props) {
   const [ticketUrl, setTicketUrl] = useState(event?.ticket_url ?? '')
 
   const bestaandeLocatie = event?.lat != null && event?.lng != null
-    ? { lat: event.lat, lng: event.lng }
+    ? {
+        lat: event.lat,
+        lng: event.lng,
+        polygon: event.polygon ?? [],
+      }
     : null
-  const [locatie, setLocatie] = useState<GetekendeLocatie | null>(bestaandeLocatie)
+  const [locatie, setLocatie] = useState<GetekendeLocatie | null>(
+    bestaandeLocatie && (bestaandeLocatie.polygon?.length ?? 0) >= 3
+      ? bestaandeLocatie as GetekendeLocatie
+      : null
+  )
 
   const [fotoBestand, setFotoBestand] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(event?.photo_url ?? null)
@@ -101,6 +110,7 @@ export function EventFormulier({ currentUserId, event }: Props) {
         const input: EventInput = {
           title: titel.trim(),
           description: omschrijving || null,
+          description_en: omschrijvingEn || null,
           starts_at: startsAt,
           ends_at: endsAt,
           venue_id: null,
@@ -110,6 +120,7 @@ export function EventFormulier({ currentUserId, event }: Props) {
           photo_url: photoUrl,
           lat: locatie.lat,
           lng: locatie.lng,
+          polygon: locatie.polygon,
           status,
           creator_id: currentUserId,
         }
@@ -155,9 +166,27 @@ export function EventFormulier({ currentUserId, event }: Props) {
             <input value={titel} onChange={e => setTitel(e.target.value)} placeholder="Evenementnaam" className={invoerKlasse} />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Omschrijving</label>
-            <OmschrijvingEditor value={omschrijving} onChange={setOmschrijving} />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Omschrijving (Nederlands)
+              </label>
+              <OmschrijvingEditor
+                value={omschrijving}
+                onChange={setOmschrijving}
+                placeholder="Beschrijving, programma, artiesten…"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Description (English)
+              </label>
+              <OmschrijvingEditor
+                value={omschrijvingEn}
+                onChange={setOmschrijvingEn}
+                placeholder="Description, programme, artists…"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -214,7 +243,8 @@ export function EventFormulier({ currentUserId, event }: Props) {
             </p>
           )}
           <GebiedKiezer
-            initialCenter={bestaandeLocatie}
+            initialCenter={event?.lat != null && event?.lng != null ? { lat: event.lat, lng: event.lng } : null}
+            initialPolygon={event?.polygon ?? null}
             onChange={setLocatie}
           />
         </section>

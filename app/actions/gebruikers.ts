@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { voegNaamSamen } from '@/lib/naam'
 import { eisPermissie } from '@/lib/eis-permissie'
 import { getCurrentUser } from '@/lib/supabase-server'
+import { totpTabelOntbreekt } from '@/lib/totp-status'
 import { revalidatePath } from 'next/cache'
 
 const MIN_WACHTWOORD = 8
@@ -50,10 +51,6 @@ async function huidigeRol(userId: string): Promise<string | null> {
 
 function magAdminToewijzen(actorRole: string): boolean {
   return actorRole === ADMIN_SLUG
-}
-
-function totpTabelOntbreekt(error: { code?: string; message: string }): boolean {
-  return error.code === 'PGRST205' || error.code === '42P01' || error.message.toLowerCase().includes('does not exist')
 }
 
 async function totpIds(): Promise<Set<string>> {

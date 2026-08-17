@@ -54,14 +54,19 @@ function buildPuntenGeoJSON(pts: Punt[]): GeoJsonFeatureCollection {
   }
 }
 
-export type GetekendeLocatie = { lat: number; lng: number }
+export type GetekendeLocatie = {
+  lat: number
+  lng: number
+  polygon: [number, number][]
+}
 
 type Props = {
   initialCenter?: { lat: number; lng: number } | null
+  initialPolygon?: [number, number][] | null
   onChange: (locatie: GetekendeLocatie | null) => void
 }
 
-export function GebiedKiezer({ initialCenter, onChange }: Props) {
+export function GebiedKiezer({ initialCenter, initialPolygon, onChange }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markerRef = useRef<mapboxgl.Marker | null>(null)
@@ -81,18 +86,27 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
 
   const startLat = initialCenter?.lat
   const startLng = initialCenter?.lng
+  const startPoly = initialPolygon
 
   useEffect(() => {
     if (!container.current || mapRef.current) return
 
+    const heeftPoly = Array.isArray(startPoly) && startPoly.length >= 3
     const heeftStart = startLat != null && startLng != null
-    const center: [number, number] = heeftStart ? [startLng!, startLat!] : GRONINGEN
+    const center: [number, number] = heeftPoly
+      ? (() => {
+          const c = centroid(startPoly!)
+          return [c.lng, c.lat] as [number, number]
+        })()
+      : heeftStart
+        ? [startLng!, startLat!]
+        : GRONINGEN
 
     const m = new mapboxgl.Map({
       container: container.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       center,
-      zoom: heeftStart ? 13 : 11,
+      zoom: heeftPoly || heeftStart ? 13 : 11,
     })
     mapRef.current = m
     m.addControl(new mapboxgl.NavigationControl(), 'top-right')
@@ -124,13 +138,23 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
         },
       })
 
-      if (heeftStart) {
+      if (heeftPoly) {
+        puntRef.current = startPoly!
+        voltooideRef.current = true
+        setPunten(startPoly!)
+        setVoltooid(true)
+        updateSources(startPoly!, true)
+        m.getCanvas().style.cursor = 'default'
+        const c = centroid(startPoly!)
+        onChange({ lat: c.lat, lng: c.lng, polygon: startPoly! })
+      } else if (heeftStart) {
         markerRef.current = new mapboxgl.Marker({ color: KLEUR })
           .setLngLat([startLng!, startLat!])
           .addTo(m)
+        m.getCanvas().style.cursor = 'crosshair'
+      } else {
+        m.getCanvas().style.cursor = 'crosshair'
       }
-
-      m.getCanvas().style.cursor = 'crosshair'
 
       m.on('click', (e) => {
         if (voltooideRef.current) return
@@ -150,7 +174,9 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
       m.remove()
       mapRef.current = null
     }
-  }, [startLat, startLng, updateSources])
+    // Alleen bij mount initialiseren
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function onAfronden() {
     if (punten.length < 3) return
@@ -158,7 +184,8 @@ export function GebiedKiezer({ initialCenter, onChange }: Props) {
     setVoltooid(true)
     updateSources(punten, true)
     if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'default'
-    onChange(centroid(punten))
+    const c = centroid(punten)
+    onChange({ lat: c.lat, lng: c.lng, polygon: punten })
   }
 
   function onOngedaan() {

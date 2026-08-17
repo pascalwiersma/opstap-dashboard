@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { totpIsIngeschakeld } from '@/lib/totp-status'
+import { totpIsIngeschakeld, totpTabelOntbreekt } from '@/lib/totp-status'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -57,11 +57,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
 
-  const { data: totp } = await adminClient
+  const { data: totp, error: totpError } = await adminClient
     .from('dashboard_totp')
     .select('verified, enabled, verified_session_id')
     .eq('user_id', user.id)
     .maybeSingle()
+
+  if (totpError && !totpTabelOntbreekt(totpError)) {
+    throw new Error(totpError.message)
+  }
 
   const enrolled = totpIsIngeschakeld({
     verified: totp?.verified === true,
