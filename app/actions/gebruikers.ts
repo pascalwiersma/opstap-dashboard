@@ -117,6 +117,78 @@ export async function getGebruikers(): Promise<Gebruiker[]> {
   return (data ?? []).map(rij => naarGebruiker(rij, totp, namen))
 }
 
+function isBestaandTelefoonnummerFout(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('already been registered') ||
+    m.includes('already registered') ||
+    m.includes('phone number already registered')
+  )
+}
+
+async function vindUserIdOpTelefoon(phone: string): Promise<string | null> {
+  const { data: profiel } = await supabaseAdmin
+    .from('profiles')
+    .select('id, dashboard_role')
+    .eq('phone', phone)
+    .maybeSingle()
+  if (profiel?.id) return profiel.id
+
+  const { data: authId, error } = await supabaseAdmin.rpc('find_user_id_by_phone', {
+    p_phone: phone,
+  })
+  if (error) {
+    // RPC ontbreekt nog (migratie niet toegepast) — geen fatale lookup-fout.
+    if (
+      error.code === 'PGRST202' ||
+      error.message.toLowerCase().includes('could not find the function')
+    ) {
+      return null
+    }
+    throw new Error(error.message)
+  }
+  return typeof authId === 'string' ? authId : null
+}
+
+async function kenDashboardToe(
+  userId: string,
+  role: string,
+  naam: string,
+  phone: string,
+  wachtwoord?: string,
+): Promise<void> {
+  if (wachtwoord) {
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: wachtwoord,
+      phone,
+      phone_confirm: true,
+    })
+    if (authError) throw new Error(authError.message)
+  }
+
+  const { error: rpcError } = await supabaseAdmin.rpc('grant_dashboard_access', {
+    p_user_id: userId,
+    p_role: role,
+    p_name: naam,
+    p_phone: phone,
+  })
+  if (!rpcError) return
+
+  // Fallback als migratie nog niet live is: directe update (service_role bypassed trigger).
+  if (
+    rpcError.code === 'PGRST202' ||
+    rpcError.message.toLowerCase().includes('could not find the function')
+  ) {
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({ dashboard_role: role, name: naam, phone })
+      .eq('id', userId)
+    if (profileError) throw new Error(profileError.message)
+    return
+  }
+  throw new Error(rpcError.message)
+}
+
 export async function addGebruiker(input: {
   voornaam: string
   achternaam: string
@@ -139,30 +211,68 @@ export async function addGebruiker(input: {
   const wachtwoordFout = valideerWachtwoord(input.wachtwoord, input.wachtwoordBevestiging)
   if (wachtwoordFout) throw new Error(wachtwoordFout)
 
+  const bestaandId = await vindUserIdOpTelefoon(normalized)
+  if (bestaandId) {
+    const { data: profiel } = await supabaseAdmin
+      .from('profiles')
+      .select('dashboard_role')
+      .eq('id', bestaandId)
+      .maybeSingle()
+    if (profiel?.dashboard_role) {
+      throw new Error('Dit telefoonnummer heeft al dashboardtoegang.')
+    }
+    await kenDashboardToe(
+      bestaandId,
+      input.role,
+      naam,
+      normalized,
+      input.wachtwoord || undefined,
+    )
+    revalidatePath('/gebruikers')
+    return bestaandId
+  }
+
   const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
     phone: normalized,
     phone_confirm: true,
     ...(input.wachtwoord ? { password: input.wachtwoord } : {}),
   })
   if (createError) {
-    throw new Error(
-      createError.message.includes('already been registered')
-        ? 'Dit telefoonnummer heeft al een account. Neem contact op als dit een bestaande gebruiker betreft.'
-        : createError.message
-    )
+    if (isBestaandTelefoonnummerFout(createError.message)) {
+      const bestaandeAuthId = await vindUserIdOpTelefoon(normalized)
+      if (!bestaandeAuthId) {
+        throw new Error(
+          'Dit telefoonnummer heeft al een account, maar we konden het niet automatisch koppelen. Zoek de gebruiker via Leden of neem contact op.',
+        )
+      }
+      const { data: profiel } = await supabaseAdmin
+        .from('profiles')
+        .select('dashboard_role')
+        .eq('id', bestaandeAuthId)
+        .maybeSingle()
+      if (profiel?.dashboard_role) {
+        throw new Error('Dit telefoonnummer heeft al dashboardtoegang.')
+      }
+      await kenDashboardToe(
+        bestaandeAuthId,
+        input.role,
+        naam,
+        normalized,
+        input.wachtwoord || undefined,
+      )
+      revalidatePath('/gebruikers')
+      return bestaandeAuthId
+    }
+    throw new Error(createError.message)
   }
 
-  const { error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .upsert({
-      id: data.user.id,
-      phone: normalized,
-      name: naam,
-      dashboard_role: input.role,
-      is_admin: false,
-    })
-
-  if (profileError) throw new Error(profileError.message)
+  await kenDashboardToe(
+    data.user.id,
+    input.role,
+    naam,
+    normalized,
+    undefined,
+  )
   revalidatePath('/gebruikers')
   return data.user.id
 }
