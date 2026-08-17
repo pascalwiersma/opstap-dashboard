@@ -53,8 +53,6 @@ function magAdminToewijzen(actorRole: string): boolean {
   return actorRole === ADMIN_SLUG
 }
 
-import { totpTabelOntbreekt } from '@/lib/totp-status'
-
 async function totpIds(): Promise<Set<string>> {
   const { data, error } = await supabaseAdmin
     .from('dashboard_totp')
