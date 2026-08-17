@@ -22,6 +22,7 @@ export type Venue = {
   lng: number
   type: VenueType | null
   description: string | null
+  description_en: string | null
   photo_url: string | null
   active: boolean
   opening_hours: Record<string, string> | null
@@ -35,6 +36,7 @@ export type VenueInput = {
   lng: number
   type: VenueType | null
   description: string | null
+  description_en: string | null
   active: boolean
   opening_hours: Record<string, string> | null
 }
@@ -88,7 +90,7 @@ export async function getVenues(province_id?: string): Promise<Venue[]> {
   await eisPermissie('locaties', 'zien')
   let query = adminClient()
     .from('venues')
-    .select('id, name, lat, lng, type, description, photo_url, active, opening_hours, created_at')
+    .select('id, name, lat, lng, type, description, description_en, photo_url, active, opening_hours, created_at')
     .order('name')
   if (province_id) query = query.eq('province_id', province_id)
 
@@ -104,9 +106,10 @@ export async function createVenue(input: VenueInput): Promise<Venue> {
     .insert({
       ...input,
       description: sanitizeOmschrijving(input.description),
+      description_en: sanitizeOmschrijving(input.description_en),
       location: `POINT(${input.lng} ${input.lat})`,
     })
-    .select('id, name, lat, lng, type, description, photo_url, active, opening_hours, created_at')
+    .select('id, name, lat, lng, type, description, description_en, photo_url, active, opening_hours, created_at')
     .single()
 
   if (error) throw new Error(error.message)
@@ -121,6 +124,7 @@ export async function updateVenue(id: string, input: VenueInput) {
     .update({
       ...input,
       description: sanitizeOmschrijving(input.description),
+      description_en: sanitizeOmschrijving(input.description_en),
       location: `POINT(${input.lng} ${input.lat})`,
     })
     .eq('id', id)

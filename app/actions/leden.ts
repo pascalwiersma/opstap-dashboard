@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import { eisPermissie } from '@/lib/eis-permissie'
+import { formatOpgeslagenReden } from '@/lib/community-richtlijnen'
 import { stuurExpoPushNaarToken } from '@/lib/expo-push'
 import { revalidatePath } from 'next/cache'
 
@@ -19,7 +20,6 @@ export type LidSamenvatting = {
   created_at: string | null
   gender: string | null
   dashboard_role: string | null
-  provincie: string | null
 }
 
 export type LidFoto = { id: string; photo_url: string; position: number }
@@ -38,6 +38,7 @@ export type LidWaarschuwing = {
   detail: string | null
   created_at: string
   read_at: string | null
+  acknowledged_at: string | null
 }
 export type LidBlok = {
   id: string
@@ -77,7 +78,6 @@ export type LidDetail = {
   smoking: string | null
   preferred_group_size: number | null
   preferred_travel_radius_km: number
-  provincie: string | null
   onboarding_completed_at: string | null
   created_at: string | null
   last_seen_at: string | null
@@ -110,15 +110,13 @@ export async function getLeden(): Promise<LidSamenvatting[]> {
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, name, username, age, avatar_url, trust_score, is_banned, identity_verified, verification_status, last_seen_at, created_at, gender, dashboard_role, provinces(name)')
+    .select('id, name, username, age, avatar_url, trust_score, is_banned, identity_verified, verification_status, last_seen_at, created_at, gender, dashboard_role')
     .order('created_at', { ascending: false })
     .limit(2000)
 
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map(rij => {
-    const provincie = Array.isArray(rij.provinces) ? rij.provinces[0] : rij.provinces
-    return {
+  return (data ?? []).map(rij => ({
       id: rij.id,
       name: rij.name,
       username: rij.username,
@@ -132,9 +130,7 @@ export async function getLeden(): Promise<LidSamenvatting[]> {
       created_at: rij.created_at,
       gender: rij.gender,
       dashboard_role: rij.dashboard_role,
-      provincie: (provincie as { name?: string } | null)?.name ?? null,
-    }
-  })
+    }))
 }
 
 export async function getLid(id: string): Promise<LidDetail | null> {
@@ -154,7 +150,7 @@ export async function getLid(id: string): Promise<LidDetail | null> {
   ] = await Promise.all([
     supabaseAdmin
       .from('profiles')
-      .select('id, name, username, username_changed_at, avatar_url, bio, age, birth_date, email, phone, gender, smoking, preferred_group_size, preferred_travel_radius_km, onboarding_completed_at, created_at, last_seen_at, trust_score, role, is_admin, dashboard_role, is_banned, is_test_account, identity_verified, identity_verified_at, verification_status, push_token, provinces(name)')
+      .select('id, name, username, username_changed_at, avatar_url, bio, age, birth_date, email, phone, gender, smoking, preferred_group_size, preferred_travel_radius_km, onboarding_completed_at, created_at, last_seen_at, trust_score, role, is_admin, dashboard_role, is_banned, is_test_account, identity_verified, identity_verified_at, verification_status, push_token')
       .eq('id', id)
       .maybeSingle(),
     supabaseAdmin
@@ -180,7 +176,7 @@ export async function getLid(id: string): Promise<LidDetail | null> {
       .limit(30),
     supabaseAdmin
       .from('user_warnings')
-      .select('id, reason, detail, created_at, read_at')
+      .select('id, reason, detail, created_at, read_at, acknowledged_at')
       .eq('user_id', id)
       .order('created_at', { ascending: false })
       .limit(30),
@@ -208,8 +204,6 @@ export async function getLid(id: string): Promise<LidDetail | null> {
   if (profielRes.error) throw new Error(profielRes.error.message)
   const p = profielRes.data
   if (!p) return null
-
-  const provincie = Array.isArray(p.provinces) ? p.provinces[0] : p.provinces
 
   const rapporten: LidRapport[] = [
     ...(rapportenGemeldRes.data ?? []).map(r => ({
@@ -256,7 +250,6 @@ export async function getLid(id: string): Promise<LidDetail | null> {
     smoking: p.smoking,
     preferred_group_size: p.preferred_group_size,
     preferred_travel_radius_km: p.preferred_travel_radius_km,
-    provincie: (provincie as { name?: string } | null)?.name ?? null,
     onboarding_completed_at: p.onboarding_completed_at,
     created_at: p.created_at,
     last_seen_at: p.last_seen_at,
@@ -321,7 +314,7 @@ export async function waarschuwLid(userId: string, reason: string, detail?: stri
   })
   if (error) throw new Error(error.message)
 
-  await stuurWaarschuwingPush(userId, reden)
+  await stuurWaarschuwingPush(userId, formatOpgeslagenReden(reden, 'nl'))
   revalidatePath('/leden')
   revalidatePath(`/leden/${userId}`)
 }

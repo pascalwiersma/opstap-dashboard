@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, Ban, CheckCircle, Clock, Flag, Shield, XCircle } from 'lucide-react'
 import type { Rapport, RapportStatus } from '@/app/actions/reports'
 import { waarschuwGebruiker, banGebruiker, sluitRapport } from '@/app/actions/reports'
+import { RichtlijnRedenVelden } from '@/app/(dashboard)/_components/richtlijn-reden-velden'
+import { richtlijnLabel, vindRichtlijn } from '@/lib/community-richtlijnen'
 
 const STATUS_CONFIG: Record<RapportStatus, { label: string; kleur: string; icon: React.ElementType }> = {
   nieuw: { label: 'Nieuw', kleur: 'bg-orange-500/15 text-orange-400 border border-orange-500/30', icon: AlertTriangle },
@@ -54,24 +56,47 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
   const [isPending, startTransition] = useTransition()
   const [filter, setFilter] = useState<RapportStatus | 'alle'>('alle')
   const [bezig, setBezig] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<{ soort: 'waarschuw' | 'ban'; rapport: Rapport } | null>(null)
+  const [redenCode, setRedenCode] = useState('')
+  const [toelichting, setToelichting] = useState('')
 
   const gefilterd = filter === 'alle'
     ? rapporten
     : rapporten.filter(r => r.status === filter)
 
-  async function handleWaarschuw(rapport: Rapport) {
+  function openDialog(soort: 'waarschuw' | 'ban', rapport: Rapport) {
+    setRedenCode('')
+    setToelichting('')
+    setDialog({ soort, rapport })
+  }
+
+  async function handleWaarschuw(rapport: Rapport, reden: string, detail: string) {
     setBezig(`waarschuw-${rapport.id}`)
-    await waarschuwGebruiker(rapport.id, rapport.reported.id, rapport.reported.push_token)
+    await waarschuwGebruiker(rapport.id, rapport.reported.id, rapport.reported.push_token, reden, detail)
     setBezig(null)
+    setDialog(null)
     startTransition(() => router.refresh())
   }
 
-  async function handleBan(rapport: Rapport) {
-    if (!confirm(`Weet je zeker dat je ${rapport.reported.name ?? 'deze gebruiker'} wilt bannen?`)) return
+  async function handleBan(rapport: Rapport, reden: string) {
+    if (!confirm(`Ban ${rapport.reported.name ?? 'deze gebruiker'} wegens ${reden}?`)) return
     setBezig(`ban-${rapport.id}`)
     await banGebruiker(rapport.id, rapport.reported.id)
     setBezig(null)
+    setDialog(null)
     startTransition(() => router.refresh())
+  }
+
+  function bevestigDialog() {
+    if (!dialog) return
+    const regel = vindRichtlijn(redenCode)
+    if (!regel) return
+    // Waarschuwing: alleen code opslaan. Ban-confirm: leesbare NL-tekst.
+    if (dialog.soort === 'waarschuw') {
+      void handleWaarschuw(dialog.rapport, regel.code, toelichting)
+    } else {
+      void handleBan(dialog.rapport, richtlijnLabel(regel, 'nl'))
+    }
   }
 
   async function handleSluit(rapport: Rapport) {
@@ -162,7 +187,7 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
                       {!isGesloten && (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => handleWaarschuw(rapport)}
+                            onClick={() => openDialog('waarschuw', rapport)}
                             disabled={!!bezig || isPending}
                             title="Waarschuwen"
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 border border-amber-600/30 text-xs font-medium transition-colors disabled:opacity-40"
@@ -171,7 +196,7 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
                             {bezig === `waarschuw-${rapport.id}` ? '…' : 'Waarschuwen'}
                           </button>
                           <button
-                            onClick={() => handleBan(rapport)}
+                            onClick={() => openDialog('ban', rapport)}
                             disabled={!!bezig || isPending}
                             title="Bannen"
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-600/30 text-xs font-medium transition-colors disabled:opacity-40"
@@ -196,6 +221,47 @@ export function RapportenLijst({ rapporten }: { rapporten: Rapport[] }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {dialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-gray-800 bg-gray-900 p-5 space-y-4">
+            <h2 className="text-base font-semibold text-white">
+              {dialog.soort === 'waarschuw' ? 'Waarschuwing versturen' : 'Gebruiker bannen'}
+            </h2>
+            <p className="text-sm text-gray-400">
+              Kies de regel uit de community richtlijnen. Die tekst ziet het lid als reden.
+            </p>
+            <RichtlijnRedenVelden
+              code={redenCode}
+              onCode={setRedenCode}
+              toelichting={toelichting}
+              onToelichting={setToelichting}
+              idPrefix="rapport-richtlijn"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDialog(null)}
+                className="px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white"
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                disabled={!redenCode || !!bezig}
+                onClick={bevestigDialog}
+                className={`px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40 ${
+                  dialog.soort === 'ban'
+                    ? 'bg-red-600/20 text-red-300 border border-red-600/30'
+                    : 'bg-amber-600/20 text-amber-300 border border-amber-600/30'
+                }`}
+              >
+                {dialog.soort === 'waarschuw' ? 'Versturen' : 'Bannen'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

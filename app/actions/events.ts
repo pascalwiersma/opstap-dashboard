@@ -15,12 +15,13 @@ function adminClient() {
   )
 }
 
-const EVENT_KOLOMMEN = 'id, title, description, starts_at, ends_at, venue_id, city, ticket_url, artists, photo_url, lat, lng, status, created_at'
+const EVENT_KOLOMMEN = 'id, title, description, description_en, starts_at, ends_at, venue_id, city, ticket_url, artists, photo_url, lat, lng, polygon, status, created_at'
 
 export type Event = {
   id: string
   title: string
   description: string | null
+  description_en: string | null
   starts_at: string
   ends_at: string | null
   venue_id: string | null
@@ -30,6 +31,7 @@ export type Event = {
   photo_url: string | null
   lat: number | null
   lng: number | null
+  polygon: [number, number][] | null
   status: 'active' | 'cancelled' | 'finished'
   created_at: string
   venue_name?: string | null
@@ -38,6 +40,7 @@ export type Event = {
 export type EventInput = {
   title: string
   description: string | null
+  description_en: string | null
   starts_at: string
   ends_at: string | null
   venue_id: string | null
@@ -47,6 +50,7 @@ export type EventInput = {
   photo_url: string | null
   lat: number | null
   lng: number | null
+  polygon: [number, number][] | null
   status: 'active' | 'cancelled' | 'finished'
   creator_id: string
 }
@@ -96,10 +100,11 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 function payloadVanInput(input: EventInput | Partial<Omit<EventInput, 'creator_id'>>) {
-  const { description, ...rest } = input
+  const { description, description_en, ...rest } = input
   return {
     ...rest,
     description: sanitizeOmschrijving(description ?? null),
+    description_en: sanitizeOmschrijving(description_en ?? null),
   }
 }
 

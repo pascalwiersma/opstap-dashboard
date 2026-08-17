@@ -16,6 +16,8 @@ function formatDatum(iso: string | null): string {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -29,7 +31,7 @@ export function LedenLijst({ leden }: { leden: LidSamenvatting[] }) {
       if (filter === 'banned' && !l.is_banned) return false
       if (filter === 'niet_geverifieerd' && l.verification_status === 'approved') return false
       if (zoek) {
-        const hay = `${l.name} ${l.username ?? ''} ${l.provincie ?? ''}`.toLowerCase()
+        const hay = `${l.name} ${l.username ?? ''}`.toLowerCase()
         if (!hay.includes(zoek)) return false
       }
       return true
@@ -50,7 +52,7 @@ export function LedenLijst({ leden }: { leden: LidSamenvatting[] }) {
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Zoek op naam, username, provincie"
+            placeholder="Zoek op naam of username"
             className={`${invoer} pl-9 w-full`}
           />
         </div>
@@ -82,7 +84,6 @@ export function LedenLijst({ leden }: { leden: LidSamenvatting[] }) {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Lid</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Provincie</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Trust</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Laatst gezien</th>
@@ -110,7 +111,6 @@ export function LedenLijst({ leden }: { leden: LidSamenvatting[] }) {
                       </div>
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-gray-300">{l.provincie ?? '—'}</td>
                   <td className="px-5 py-3 text-gray-300">{l.trust_score ?? '—'}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
