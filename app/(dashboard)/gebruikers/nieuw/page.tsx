@@ -18,7 +18,8 @@ export default async function NieuwGebruikerPage() {
         <h1 className="text-2xl font-display text-white">Gebruiker toevoegen</h1>
       </div>
       <p className="text-gray-400 text-sm mb-8">
-        De gebruiker logt in met dit telefoonnummer via SMS, optioneel met een wachtwoord, en daarna 2FA als dat is ingesteld.
+        Zoek een bestaande app-gebruiker op naam en controleer het gekoppelde telefoonnummer.
+        Daarna kies je een rol. Inloggen gaat via SMS (en optioneel wachtwoord + 2FA).
       </p>
       <NieuwGebruikerForm rollen={rollen} />
     </div>
