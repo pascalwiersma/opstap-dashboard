@@ -72,6 +72,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
   const [name, setName] = useState(venue?.name ?? '')
   const [type, setType] = useState<VenueType | null>(venue?.type ?? null)
   const [description, setDescription] = useState(venue?.description ?? '')
+  const [descriptionEn, setDescriptionEn] = useState(venue?.description_en ?? '')
   const [active, setActive] = useState(venue?.active ?? true)
   const [hours, setHours] = useState<Record<(typeof DAYS)[number], DagTijden>>(
     () => startTijden(venue?.opening_hours ?? null)
@@ -117,6 +118,7 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
         lng: coordLng,
         type,
         description: description || null,
+        description_en: descriptionEn || null,
         active,
         opening_hours: Object.keys(opening_hours).length ? opening_hours : null,
       })
@@ -214,14 +216,25 @@ export function VenuePanel({ mode, venue, lat, lng, dragPos, onSave, onDelete, o
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Omschrijving</label>
-          <OmschrijvingEditor
-            value={description}
-            onChange={setDescription}
-            placeholder="Sfeer, muziek, wat je er kunt verwachten..."
-            height={220}
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Omschrijving (Nederlands)</label>
+            <OmschrijvingEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Sfeer, muziek, wat je er kunt verwachten..."
+              height={200}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Description (English)</label>
+            <OmschrijvingEditor
+              value={descriptionEn}
+              onChange={setDescriptionEn}
+              placeholder="Vibe, music, what to expect..."
+              height={200}
+            />
+          </div>
         </div>
 
         <div>

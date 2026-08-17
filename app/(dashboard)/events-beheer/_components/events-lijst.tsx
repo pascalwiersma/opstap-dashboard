@@ -71,8 +71,6 @@ export function EventsLijst({ initialEvents, kanToevoegen, kanBewerken, kanVerwi
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Titel</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stad</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Venue</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Start</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Einde</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
@@ -85,8 +83,6 @@ export function EventsLijst({ initialEvents, kanToevoegen, kanBewerken, kanVerwi
                   <td className="px-5 py-3.5">
                     <div className="text-white font-medium">{event.title}</div>
                   </td>
-                  <td className="px-5 py-3.5 text-gray-300">{event.city ?? <span className="text-gray-600">—</span>}</td>
-                  <td className="px-5 py-3.5 text-gray-300">{event.venue_name ?? <span className="text-gray-600">—</span>}</td>
                   <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">{formatDatum(event.starts_at)}</td>
                   <td className="px-5 py-3.5 text-gray-400 tabular-nums whitespace-nowrap">
                     {event.ends_at ? formatDatum(event.ends_at) : <span className="text-gray-600">—</span>}

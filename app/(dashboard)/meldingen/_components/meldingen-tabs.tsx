@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bug, Flag, Inbox, MessageSquare } from 'lucide-react'
+import { Bug, Flag, Inbox, MessageSquare, Scale } from 'lucide-react'
 import type { BugReport } from '@/app/actions/bugs'
 import type { Rapport } from '@/app/actions/reports'
 import type { Feedback } from '@/app/actions/feedback'
+import type { BanAppeal } from '@/app/actions/ban-appeals'
 import { BugsLijst } from './bugs-lijst'
 import { RapportenLijst } from './rapporten-lijst'
 import { FeedbackLijst } from './feedback-lijst'
+import { BezwarenLijst } from './bezwaren-lijst'
 import { parseMeldingTab, type MeldingTab } from './melding-tab'
 
 type Props = {
   bugs: BugReport[]
   rapporten: Rapport[]
   feedback: Feedback[]
+  bezwaren: BanAppeal[]
   initialTab: MeldingTab
 }
 
@@ -22,9 +25,10 @@ const TABS: { id: MeldingTab; label: string; icon: typeof Bug }[] = [
   { id: 'bugs', label: 'Bugs', icon: Bug },
   { id: 'rapporten', label: 'Rapporten', icon: Flag },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+  { id: 'bezwaren', label: 'Bezwaren', icon: Scale },
 ]
 
-export function MeldingenTabs({ bugs, rapporten, feedback, initialTab }: Props) {
+export function MeldingenTabs({ bugs, rapporten, feedback, bezwaren, initialTab }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<MeldingTab>(initialTab)
 
@@ -44,9 +48,10 @@ export function MeldingenTabs({ bugs, rapporten, feedback, initialTab }: Props) 
     bugs: bugs.filter(b => b.status === 'nieuw').length,
     rapporten: rapporten.filter(r => r.status === 'nieuw').length,
     feedback: feedback.filter(f => f.status === 'nieuw').length,
+    bezwaren: bezwaren.filter(b => b.status === 'nieuw').length,
   }
-  const aantalNieuw = nieuwPerTab.bugs + nieuwPerTab.rapporten + nieuwPerTab.feedback
-  const aantalTotaal = bugs.length + rapporten.length + feedback.length
+  const aantalNieuw = Object.values(nieuwPerTab).reduce((a, b) => a + b, 0)
+  const aantalTotaal = bugs.length + rapporten.length + feedback.length + bezwaren.length
 
   return (
     <div className="flex flex-col h-full">
@@ -103,6 +108,7 @@ export function MeldingenTabs({ bugs, rapporten, feedback, initialTab }: Props) 
         {tab === 'bugs' && <BugsLijst bugs={bugs} />}
         {tab === 'rapporten' && <RapportenLijst rapporten={rapporten} />}
         {tab === 'feedback' && <FeedbackLijst feedback={feedback} />}
+        {tab === 'bezwaren' && <BezwarenLijst bezwaren={bezwaren} />}
       </div>
     </div>
   )

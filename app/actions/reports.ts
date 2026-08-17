@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { eisPermissie } from '@/lib/eis-permissie'
+import { formatOpgeslagenReden } from '@/lib/community-richtlijnen'
 import { stuurExpoPushNaarToken } from '@/lib/expo-push'
 
 function adminClient() {
@@ -44,21 +45,29 @@ export async function getRapporten(status?: RapportStatus): Promise<Rapport[]> {
   return data as unknown as Rapport[]
 }
 
-export async function waarschuwGebruiker(reportId: string, reportedId: string, pushToken: string | null) {
+export async function waarschuwGebruiker(
+  reportId: string,
+  reportedId: string,
+  pushToken: string | null,
+  reason: string,
+  detail?: string,
+) {
   await eisPermissie('meldingen', 'bewerken')
+  const reden = reason.trim()
+  if (!reden) throw new Error('Kies een regel uit de community richtlijnen.')
   const db = adminClient()
 
   await db.from('reports').update({ status: 'in_behandeling' }).eq('id', reportId)
   await db.from('user_warnings').insert({
     user_id: reportedId,
-    reason: 'Waarschuwing van OpStap',
-    detail: 'Houd je aan de community richtlijnen.',
+    reason: reden,
+    detail: detail?.trim() || null,
   })
 
   await stuurExpoPushNaarToken(
     pushToken,
     'Waarschuwing van OpStap',
-    'Je hebt een waarschuwing ontvangen van OpStap. Houd je aan de community richtlijnen.',
+    formatOpgeslagenReden(reden, 'nl'),
     { type: 'warning' },
   )
 
