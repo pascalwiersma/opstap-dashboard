@@ -117,37 +117,45 @@ export async function getGebruikers(): Promise<Gebruiker[]> {
   return (data ?? []).map(rij => naarGebruiker(rij, totp, namen))
 }
 
-function isBestaandTelefoonnummerFout(message: string): boolean {
-  const m = message.toLowerCase()
-  return (
-    m.includes('already been registered') ||
-    m.includes('already registered') ||
-    m.includes('phone number already registered')
-  )
+export type ProfielZoekResultaat = {
+  id: string
+  name: string | null
+  username: string | null
+  phone: string | null
+  dashboard_role: string | null
+  dashboard_role_name: string | null
 }
 
-async function vindUserIdOpTelefoon(phone: string): Promise<string | null> {
-  const { data: profiel } = await supabaseAdmin
-    .from('profiles')
-    .select('id, dashboard_role')
-    .eq('phone', phone)
-    .maybeSingle()
-  if (profiel?.id) return profiel.id
+/** Zoek bestaande app-profielen op naam of username (voor dashboardtoegang geven). */
+export async function searchProfielenVoorDashboard(query: string): Promise<ProfielZoekResultaat[]> {
+  await eisPermissie('gebruikers', 'toevoegen')
+  const q = query.trim()
+  if (q.length < 2) return []
 
-  const { data: authId, error } = await supabaseAdmin.rpc('find_user_id_by_phone', {
-    p_phone: phone,
-  })
-  if (error) {
-    // RPC ontbreekt nog (migratie niet toegepast) — geen fatale lookup-fout.
-    if (
-      error.code === 'PGRST202' ||
-      error.message.toLowerCase().includes('could not find the function')
-    ) {
-      return null
-    }
-    throw new Error(error.message)
-  }
-  return typeof authId === 'string' ? authId : null
+  const veilig = q.replace(/[%_,()"]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (veilig.length < 2) return []
+
+  const patroon = `%${veilig}%`
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, name, username, phone, dashboard_role')
+    .or(`name.ilike."${patroon}",username.ilike."${patroon}"`)
+    .order('name')
+    .limit(12)
+
+  if (error) throw new Error(error.message)
+
+  const namen = await rolNamen()
+  return (data ?? []).map(rij => ({
+    id: rij.id,
+    name: rij.name,
+    username: rij.username,
+    phone: rij.phone,
+    dashboard_role: rij.dashboard_role,
+    dashboard_role_name: rij.dashboard_role
+      ? (namen.get(rij.dashboard_role) ?? rij.dashboard_role)
+      : null,
+  }))
 }
 
 async function kenDashboardToe(
@@ -189,10 +197,9 @@ async function kenDashboardToe(
   throw new Error(rpcError.message)
 }
 
+/** Geef dashboardtoegang aan een bestaand app-account (geen nieuwe Auth-user aanmaken). */
 export async function addGebruiker(input: {
-  voornaam: string
-  achternaam: string
-  phone: string
+  userId: string
   role: string
   wachtwoord: string
   wachtwoordBevestiging: string
@@ -201,80 +208,36 @@ export async function addGebruiker(input: {
   if (input.role === ADMIN_SLUG && !magAdminToewijzen(actor.role)) {
     throw new Error('Alleen een admin kan de admin-rol toewijzen.')
   }
-  const normalized = normalizePhone(input.phone)
-  if (!normalized) {
-    throw new Error('Ongeldig telefoonnummer. Gebruik een Nederlands mobiel nummer, bijv. 06 12345678.')
-  }
-  const naam = voegNaamSamen(input.voornaam, input.achternaam)
-  if (!naam) throw new Error('Voornaam of achternaam is verplicht.')
 
   const wachtwoordFout = valideerWachtwoord(input.wachtwoord, input.wachtwoordBevestiging)
   if (wachtwoordFout) throw new Error(wachtwoordFout)
 
-  const bestaandId = await vindUserIdOpTelefoon(normalized)
-  if (bestaandId) {
-    const { data: profiel } = await supabaseAdmin
-      .from('profiles')
-      .select('dashboard_role')
-      .eq('id', bestaandId)
-      .maybeSingle()
-    if (profiel?.dashboard_role) {
-      throw new Error('Dit telefoonnummer heeft al dashboardtoegang.')
-    }
-    await kenDashboardToe(
-      bestaandId,
-      input.role,
-      naam,
-      normalized,
-      input.wachtwoord || undefined,
-    )
-    revalidatePath('/gebruikers')
-    return bestaandId
-  }
+  const { data: profiel, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, name, phone, dashboard_role')
+    .eq('id', input.userId)
+    .maybeSingle()
 
-  const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
-    phone: normalized,
-    phone_confirm: true,
-    ...(input.wachtwoord ? { password: input.wachtwoord } : {}),
-  })
-  if (createError) {
-    if (isBestaandTelefoonnummerFout(createError.message)) {
-      const bestaandeAuthId = await vindUserIdOpTelefoon(normalized)
-      if (!bestaandeAuthId) {
-        throw new Error(
-          'Dit telefoonnummer heeft al een account, maar we konden het niet automatisch koppelen. Zoek de gebruiker via Leden of neem contact op.',
-        )
-      }
-      const { data: profiel } = await supabaseAdmin
-        .from('profiles')
-        .select('dashboard_role')
-        .eq('id', bestaandeAuthId)
-        .maybeSingle()
-      if (profiel?.dashboard_role) {
-        throw new Error('Dit telefoonnummer heeft al dashboardtoegang.')
-      }
-      await kenDashboardToe(
-        bestaandeAuthId,
-        input.role,
-        naam,
-        normalized,
-        input.wachtwoord || undefined,
-      )
-      revalidatePath('/gebruikers')
-      return bestaandeAuthId
-    }
-    throw new Error(createError.message)
+  if (error) throw new Error(error.message)
+  if (!profiel) {
+    throw new Error('Gebruiker niet gevonden. De persoon moet eerst een account in de OpStap-app hebben.')
+  }
+  if (profiel.dashboard_role) {
+    throw new Error('Deze gebruiker heeft al dashboardtoegang.')
+  }
+  if (!profiel.phone) {
+    throw new Error('Dit account heeft geen telefoonnummer. Laat de gebruiker eerst inloggen in de app.')
   }
 
   await kenDashboardToe(
-    data.user.id,
+    profiel.id,
     input.role,
-    naam,
-    normalized,
-    undefined,
+    profiel.name?.trim() || 'Gebruiker',
+    profiel.phone,
+    input.wachtwoord || undefined,
   )
   revalidatePath('/gebruikers')
-  return data.user.id
+  return profiel.id
 }
 
 export async function updateGebruiker(input: {
