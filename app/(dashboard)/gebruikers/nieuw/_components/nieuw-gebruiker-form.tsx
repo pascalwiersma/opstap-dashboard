@@ -31,22 +31,30 @@ export function NieuwGebruikerForm({ rollen }: { rollen: { slug: string; name: s
   const [bezig, setBezig] = useState(false)
   const [fout, setFout] = useState('')
   const zoekVolgorde = useRef(0)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (gekozen) return
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
-    const q = zoek.trim()
+  function planZoekopdracht(waarde: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    const q = waarde.trim()
     if (q.length < 2) {
+      zoekVolgorde.current += 1
       setResultaten([])
       setZoekBezig(false)
       setZoekFout('')
       return
     }
 
-    const volgorde = ++zoekVolgorde.current
     setZoekBezig(true)
     setZoekFout('')
-    const timer = setTimeout(async () => {
+    const volgorde = ++zoekVolgorde.current
+    debounceRef.current = setTimeout(async () => {
       try {
         const rijen = await searchProfielenVoorDashboard(q)
         if (volgorde !== zoekVolgorde.current) return
@@ -59,22 +67,33 @@ export function NieuwGebruikerForm({ rollen }: { rollen: { slug: string; name: s
         if (volgorde === zoekVolgorde.current) setZoekBezig(false)
       }
     }, 300)
+  }
 
-    return () => clearTimeout(timer)
-  }, [zoek, gekozen])
+  function onZoekChange(waarde: string) {
+    setZoek(waarde)
+    if (!gekozen) planZoekopdracht(waarde)
+  }
 
   function kiesProfiel(profiel: ProfielZoekResultaat) {
     if (profiel.dashboard_role) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    zoekVolgorde.current += 1
     setGekozen(profiel)
     setZoek(profiel.name?.trim() || '')
     setResultaten([])
+    setZoekBezig(false)
+    setZoekFout('')
     setFout('')
   }
 
   function wisKeuze() {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    zoekVolgorde.current += 1
     setGekozen(null)
     setZoek('')
     setResultaten([])
+    setZoekBezig(false)
+    setZoekFout('')
     setFout('')
   }
 
@@ -144,7 +163,7 @@ export function NieuwGebruikerForm({ rollen }: { rollen: { slug: string; name: s
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
               <input
                 value={zoek}
-                onChange={e => setZoek(e.target.value)}
+                onChange={e => onZoekChange(e.target.value)}
                 placeholder="Bijv. Pascal"
                 autoComplete="off"
                 className={`${invoerKlasse} pl-9 pr-9`}
