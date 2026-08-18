@@ -160,7 +160,7 @@ export async function getLid(id: string): Promise<LidDetail | null> {
       .order('position', { ascending: true }),
     supabaseAdmin
       .from('user_interests')
-      .select('interest_id, interests(id, name)')
+      .select('interest_id, interests(id, label)')
       .eq('user_id', id),
     supabaseAdmin
       .from('reports')
@@ -202,6 +202,7 @@ export async function getLid(id: string): Promise<LidDetail | null> {
   ])
 
   if (profielRes.error) throw new Error(profielRes.error.message)
+  if (interessesRes.error) throw new Error(interessesRes.error.message)
   const p = profielRes.data
   if (!p) return null
 
@@ -266,7 +267,10 @@ export async function getLid(id: string): Promise<LidDetail | null> {
     fotos: (fotosRes.data ?? []) as LidFoto[],
     interesses: (interessesRes.data ?? []).map(rij => {
       const tag = Array.isArray(rij.interests) ? rij.interests[0] : rij.interests
-      return { id: (tag as { id?: string } | null)?.id ?? rij.interest_id, name: (tag as { name?: string } | null)?.name ?? '—' }
+      return {
+        id: (tag as { id?: string } | null)?.id ?? rij.interest_id,
+        name: (tag as { label?: string } | null)?.label ?? '—',
+      }
     }),
     rapporten,
     waarschuwingen: (waarschuwingenRes.data ?? []) as LidWaarschuwing[],
